@@ -40,6 +40,8 @@
 	"eventhandler",
 	"fp-collector",
 	"maptradewarning",
+	"guild-battles",
+	"ignore-list",
 	"guildmemberstat",
 	"qiprogress",
 	"quests",

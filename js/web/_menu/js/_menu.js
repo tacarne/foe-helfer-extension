@@ -53,6 +53,8 @@ let _menu = {
 		'investment',
 		'alerts',
 		'guildMemberstat',
+		'guildBattles',
+		'ignoreList',
 		'gexStat',
 		'castle',
 		'music',
@@ -915,6 +917,40 @@ let _menu = {
 			if ($('#guildmemberstat-Btn').hasClass('hud-btn-red') === false) {
 				GuildMemberStat.BuildBox(false);
 			}
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Guild battles tracker
+	 */
+	guildBattles_Btn: () => {
+		let btn = _menu.MakeButton(
+			'guildBattles',
+			i18n('Menu.GuildBattles.Title'),
+			i18n('Menu.GuildBattles.Desc')
+		);
+
+		let btn_sp = $('<span />').bind('click', function () {
+			GuildBattles.Show();
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Ignore list
+	 */
+	ignoreList_Btn: () => {
+		let btn = _menu.MakeButton(
+			'ignoreList',
+			i18n('Menu.IgnoreList.Title'),
+			i18n('Menu.IgnoreList.Desc')
+		);
+
+		let btn_sp = $('<span />').bind('click', function () {
+			IgnoreList.Show();
 		});
 
 		return btn.append(btn_sp);

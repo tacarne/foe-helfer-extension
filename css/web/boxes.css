@@ -708,6 +708,14 @@ p {
 	background-image: url('../images/menu/guildmemberstat.png');
 }
 
+[id$=guildBattles-Btn] span {
+	background-image: url('../images/menu/guildBattles.png');
+}
+
+[id$=ignoreList-Btn] span {
+	background-image: url('../images/menu/ignore.png');
+}
+
 [id$=gexStat-Btn] span {
 	background-image: url('../images/menu/gex.png');
 }

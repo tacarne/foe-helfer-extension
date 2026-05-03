@@ -487,7 +487,9 @@ let Calculator = {
 		hFordern.push('<thead>' +
 			'<th>#</th>' +
 			'<th><span class="forgepoints" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Commitment')) + '"></span></th>' +
-			'<th>' + i18n('Boxes.Calculator.Profit') + '</th>');
+			'<th>' + i18n('Boxes.Calculator.Profit') + '</th>' +
+			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.MinSecure')) + '">' + i18n('Boxes.Calculator.MinSecure') + '</th>' +
+			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Rate')) + '">' + i18n('Boxes.Calculator.Rate') + '</th>');
 			if (Calculator.ShowBP)
 				hFordern.push('<th><span class="blueprint" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.BPs')) + '"></span></th>');
 			if (Calculator.ShowMedals)
@@ -644,11 +646,44 @@ let Calculator = {
 			}
 
 
+			// Min. sécurisé
+			let MinSecureText, MinSecureClass;
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit') {
+				MinSecureText = '-';
+				MinSecureClass = '';
+			} else if (SaveStates[Rank] === 'Self') {
+				MinSecureText = '-';
+				MinSecureClass = 'info';
+			} else if (SaveRankCosts[Rank] !== undefined) {
+				const SaveGewinn = FPRewards[Rank] - SaveRankCosts[Rank];
+				const GainHtml = SaveGewinn > 0
+					? ' <small class="success">(+' + HTML.Format(SaveGewinn) + ')</small>'
+					: (SaveGewinn < 0
+						? ' <small class="error">(' + HTML.Format(SaveGewinn) + ')</small>'
+						: '');
+				MinSecureText = '<span class="copy-fp clickable" data-copy="' + SaveRankCosts[Rank] + '">' + HTML.Format(SaveRankCosts[Rank]) + '</span>' + GainHtml;
+				MinSecureClass = (SaveStates[Rank] === 'Profit' ? 'success' : (SaveStates[Rank] === 'NegativeProfit' ? 'error' : ''));
+			} else {
+				MinSecureText = '-';
+				MinSecureClass = '';
+			}
+
+			// Taux (SaveRankCosts / FPNettoRewards * 100)
+			let KursText;
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit' || SaveStates[Rank] === 'Self' || SaveRankCosts[Rank] === undefined || FPNettoRewards[Rank] === 0) {
+				KursText = '-';
+			} else {
+				let KursVal = MainParser.round(SaveRankCosts[Rank] / FPNettoRewards[Rank] * 1000) / 10;
+				KursText = Calculator.FormatKurs(KursVal);
+			}
+
 			hFordern.push('<tr class="' + RowClass + '">');
 			hFordern.push('<td class="text-center"><strong class="' + RankClass + ' td-tooltip" title="' + HTML.i18nTooltip(RankTooltip.join('<br>')) + '">' + RankText + '</strong></td>');
 			hFordern.push('<td class="text-center"><strong class="' + EinsatzClass + ' td-tooltip copy-fp clickable" data-copy="' + ForderFPRewards[Rank] + '" title="' + HTML.i18nTooltip(EinsatzTooltip.join('<br>')) + '">' + EinsatzText + '</strong></td>');
 			hFordern.push('<td class="text-center"><strong class="' + GewinnClass + ' td-tooltip" title="' + HTML.i18nTooltip(GewinnTooltip.join('<br>')) + '">' + GewinnText + '</strong></td>');
-			
+			hFordern.push('<td class="text-center"><strong class="' + MinSecureClass + '">' + MinSecureText + '</strong></td>');
+			hFordern.push('<td class="text-center">' + KursText + '</td>');
+
 			if (Calculator.ShowBP)
 				hFordern.push('<td class="text-center">' + HTML.Format(BPRewards[Rank]) + '</td>');
 			if (Calculator.ShowMedals)

@@ -1,0 +1,95 @@
+/*
+ * Ignore List - CSS
+ */
+
+.il-empty {
+	padding: 20px;
+	color: var(--text-muted, #aaa);
+	font-style: italic;
+}
+
+table.il-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12px;
+}
+
+table.il-table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--dark-bg, #1a1a2e);
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--border-color, #444);
+	text-align: left;
+}
+
+table.il-table td {
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--border-color, #333);
+}
+
+table.il-table td.il-rank {
+	width: 36px;
+	color: var(--text-muted, #aaa);
+	font-size: 11px;
+}
+
+table.il-table tbody tr:hover td {
+	background: var(--hover-bg, #2a2a3e);
+}
+
+.il-count {
+	color: var(--text-muted, #aaa);
+	font-weight: normal;
+	font-size: 11px;
+}
+
+.il-ext-link{
+    color:#f0d58a !important;
+    text-decoration:none;
+    font-weight:600;
+}
+
+.il-ext-link:hover{
+    color:#ffffff !important;
+    text-decoration:underline;
+}
+
+#IgnoreListBox{
+    display:flex;
+    flex-direction:column;
+}
+
+#IgnoreListBox .window-body{
+    position:absolute;
+    top:34px;
+    left:0;
+    right:0;
+    bottom:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+}
+
+#IgnoreListBoxBody{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+#il-content{
+    flex:1;
+    min-height:0;
+    overflow:hidden;
+    display:flex;
+}
+
+.il-scroll-wrapper{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+}
