@@ -331,13 +331,13 @@ let GuildBattles = {
 		GuildBattles.UpdateCopyBar();
 	},
 
-	CopyComparison: (clanId) => {
+	GetComparisonText: (clanId) => {
 		const sel = GuildBattles.SelectedCols;
-		if (sel.length !== 2) return;
+		if (sel.length !== 2) return null;
 
 		const data = GuildBattles.LoadData();
 		const guild = data[clanId];
-		if (!guild) return;
+		if (!guild) return null;
 
 		const colA = Math.min(sel[0], sel[1]); // newer snapshot
 		const colB = Math.max(sel[0], sel[1]); // older snapshot
@@ -369,7 +369,32 @@ let GuildBattles = {
 			lines.push(row.name + ' : +' + row.diff);
 		}
 
-		helper.str.copyToClipboardLegacy(lines.join('\n'));
+		return lines.join('\n');
+	},
+
+	ShowComparisonCopyBox: (text) => {
+		if ($('#GuildBattlesCopyBox').length === 0) {
+			HTML.Box({
+				id: 'GuildBattlesCopyBox',
+				title: i18n('Boxes.GuildBattles.CopyComparison'),
+				auto_close: true,
+				dragdrop: true,
+				minimize: true,
+				resize: true,
+				active_maps: 'main'
+			});
+		}
+
+		$('#GuildBattlesCopyBoxBody').html('<textarea class="gb-copy-preview" readonly></textarea>');
+		$('#GuildBattlesCopyBoxBody .gb-copy-preview').val(text);
+	},
+
+	CopyComparison: (clanId) => {
+		const text = GuildBattles.GetComparisonText(clanId);
+		if (text === null) return;
+
+		helper.str.copyToClipboardLegacy(text);
+		GuildBattles.ShowComparisonCopyBox(text);
 
 		const $btn = $('#gb-copy-btn');
 		$btn.addClass('btn-active');
