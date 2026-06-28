@@ -1263,13 +1263,35 @@ let Parts = {
 
 		if (Parts.CopyIncludeDanger && Parts.CopyDangerPrefix !== '' && (DangerPlaces.find(e => e > 5) || LeveltLG.find(e => e))) Ret.push(Parts.CopyDangerPrefix);
 
-		if (Parts.CopyIncludePlayer) Ret.push(Parts.CopyPlayerName);
+		if (Parts.CopyIncludePlayer) Ret.push(/*Parts.CopyPlayerName*/"tac");
 
-		if (Parts.CopyIncludeGB) Ret.push(Parts.CopyBuildingName);
+        const gbNames = {
+            "La galaxie bleue": "galaxie",
+            "L'arche": "arche",
+            "Vaisseau de guerre stellaire": "vaisseau",
+            "Saturne VI porte HYDRE": "hydre",
+            "Saturne VI porte CENTAURE": "centaure",
+            "Saturne VI porte PÉGASE": "pégase",
+            "Observatoire": "obs",
+            "Orangerie arctique": "orangerie",
+            "Statue de Zeus": "zeus",
+            "Catalyseur cosmique": "catalyseur",
+        };
+
+        let gbName = Parts.CopyBuildingName;
+
+        Parts.CopyIncludeFP = true;
+
+        if (gbNames[gbName]) {
+            gbName = gbNames[gbName];
+            Parts.CopyIncludeFP = false;
+        }
+
+		if (Parts.CopyIncludeGB) Ret.push(gbName);
 
 		if (Parts.CopyIncludeLevelString) Ret.push(i18n('Boxes.OwnpartCalculator.OptionsLevelUp'));
 
-		if (Parts.CopyIncludeLevel) Ret.push(Level + '→' + (Level + 1));
+//		if (Parts.CopyIncludeLevel) Ret.push(Level + '→' + (Level + 1));
 
 		let NoPlacesSelected = true;
 		for (let i = 0; i < 5; i++) {
@@ -1300,7 +1322,7 @@ let Parts = {
 			Ret.push(i18n('Boxes.OwnpartCalculator.NoPlaceAvailable'));
 		}
 		
-		if (Parts.CopyIncludeOwnPart) Ret.push(i18n('Boxes.OwnpartCalculator.OwnPartShort') + '(' + OwnPart + ')');
+//		if (Parts.CopyIncludeOwnPart) Ret.push(i18n('Boxes.OwnpartCalculator.OwnPartShort') + '(' + OwnPart + ')');
 
 		return Ret.join(' ');
 	},
