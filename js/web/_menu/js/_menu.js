@@ -53,6 +53,8 @@ let _menu = {
 		'investment',
 		'alerts',
 		'guildMemberstat',
+		'guildBattles',
+		'ignoreList',
 		'gexStat',
 		'castle',
 		'music',
@@ -338,6 +340,8 @@ let _menu = {
 		{ id: 'recurringQuests', title: i18n('Menu.recurringQuests.Title'), description: i18n('Menu.recurringQuests.Desc') },
 		{ id: 'hiddenRewards', title: i18n('Menu.HiddenRewards.Title'), description: i18n('Menu.HiddenRewards.Desc') },
 		{ id: 'cityMap', title: i18n('Menu.Citymap.Title'), description: i18n('Menu.Citymap.Desc') },
+		{ id: 'guildBattles', title: i18n('Menu.GuildBattles.Title'), description: i18n('Menu.GuildBattles.Desc') },
+		{ id: 'ignoreList', title: i18n('Menu.IgnoreList.Title'), description: i18n('Menu.IgnoreList.Desc') },
 	],
 
 	/**
@@ -834,4 +838,31 @@ let _menu = {
 
 		return btn.append(btn_sp);
 	},
+
+	/**
+	 * Guild battles tracker
+	 */
+	guildBattles_Btn: () => {
+		let btn = _menu.MakeButton('guildBattles');
+
+		let btn_sp = $('<span />').bind('click', function () {
+			GuildBattles.Show();
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Ignore list
+	 */
+	ignoreList_Btn: () => {
+		let btn = _menu.MakeButton('ignoreList');
+
+		let btn_sp = $('<span />').bind('click', function () {
+			IgnoreList.Show();
+		});
+
+		return btn.append(btn_sp);
+	},
+
 };

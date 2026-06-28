@@ -643,11 +643,20 @@ const Profile = {
 
 
         content.push('<div class="battleBoosts pad text-center">');
-        content.push('<table><tr class="general">'
+        /*content.push('<table><tr class="general">'
             +'<td><span class="aAtt">'+HTML.Format(parseInt(boosts['att_boost_attacker-all']))+'</span>'
             +'<span class="aDef">'+HTML.Format(parseInt(boosts['def_boost_attacker-all']))+'</span> </td>'
             +`<td></td><td><span class="dAtt ${n?'blur" data-original-title="'+i18n('Boxes.PlayerProfile.OtherPlayerNotAvailable')+'"':'"'}">`+HTML.Format(parseInt(n?boosts['att_boost_defender']:boosts['att_boost_defender-all']))+'</span>'
-            +`<span class="dDef ${n?'blur" data-original-title="'+i18n('Boxes.PlayerProfile.OtherPlayerNotAvailable')+'"':'"'}>`+HTML.Format(parseInt(n?boosts['def_boost_defender']:boosts['def_boost_defender-all']))+'</span> </td></tr>');
+            +`<span class="dDef ${n?'blur" data-original-title="'+i18n('Boxes.PlayerProfile.OtherPlayerNotAvailable')+'"':'"'}>`+HTML.Format(parseInt(n?boosts['def_boost_defender']:boosts['def_boost_defender-all']))+'</span> </td></tr>');*/
+        content.push('<table><tr class="general">'
+            +'<td><span class="aAtt">'+HTML.Format(parseInt(boosts['att_boost_attacker-all']))+'</span>'
+            +'<span class="aDef">'+HTML.Format(parseInt(boosts['def_boost_attacker-all']))+'</span> </td>'
+            +'<td></td><td><span class="dAtt">'
+            +HTML.Format(parseInt(boosts['att_boost_defender-all']))
+            +'</span>'
+            +'<span class="dDef">'
+            +HTML.Format(parseInt(boosts['def_boost_defender-all']))
+            +'</span> </td></tr>');
         content.push('<tr>'
             +'<td><span class="aAtt">'+HTML.Format(parseInt(boosts['att_boost_attacker-battleground']+boosts['att_boost_attacker-all']))+'</span>'
             +'<span class="aDef">'+HTML.Format(parseInt(boosts['def_boost_attacker-battleground']+boosts['def_boost_attacker-all']))+'</span> </td>'

@@ -346,7 +346,9 @@ let Calculator = {
 		h.push('<thead>' +
 			'<th>#</th>' +
 			'<th><span class="forgepoints" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Commitment')) + '"></span></th>' +
-			'<th>' + i18n('Boxes.Calculator.Profit') + '</th>');
+			'<th>' + i18n('Boxes.Calculator.Profit') + '</th>' +
+			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.MinSecure')) + '">' + i18n('Boxes.Calculator.MinSecure') + '</th>' +
+			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Rate')) + '">' + i18n('Boxes.Calculator.Rate') + '</th>');
 			h.push('<th><span class="blueprint" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.BPs')) + '"></span></th>');
 			h.push('<th><span class="medal" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Meds')) + '"></span></th>');
 		h.push('</thead>');
@@ -484,6 +486,37 @@ let Calculator = {
 			else if (ForderStates[Rank] === 'LevelWarning' && SaveStates[Rank] === 'LevelWarning') 
 				RowClass = 'bg-yellow';
 
+			// Min. sécurisé
+			let MinSecureText, MinSecureClass;
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit') {
+				MinSecureText = '-';
+				MinSecureClass = '';
+			} else if (SaveStates[Rank] === 'Self') {
+				MinSecureText = '-';
+				MinSecureClass = 'info';
+			} else if (SaveRankCosts[Rank] !== undefined) {
+				const SaveGewinn = FPRewards[Rank] - SaveRankCosts[Rank];
+				const GainHtml = SaveGewinn > 0
+					? ' <small class="success">(+' + HTML.Format(SaveGewinn) + ')</small>'
+					: (SaveGewinn < 0
+						? ' <small class="error">(' + HTML.Format(SaveGewinn) + ')</small>'
+						: '');
+				MinSecureText = '<span class="copy-fp clickable" data-copy="' + SaveRankCosts[Rank] + '">' + HTML.Format(SaveRankCosts[Rank]) + '</span>' + GainHtml;
+				MinSecureClass = (SaveStates[Rank] === 'Profit' ? 'success' : (SaveStates[Rank] === 'NegativeProfit' ? 'error' : ''));
+			} else {
+				MinSecureText = '-';
+				MinSecureClass = '';
+			}
+
+			// Taux (SaveRankCosts / FPNettoRewards * 100)
+			let KursText;
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit' || SaveStates[Rank] === 'Self' || SaveRankCosts[Rank] === undefined || FPNettoRewards[Rank] === 0) {
+				KursText = '-';
+			} else {
+				let KursVal = MainParser.round(SaveRankCosts[Rank] / FPNettoRewards[Rank] * 1000) / 10;
+				KursText = Calculator.FormatKurs(KursVal);
+			}
+
 			h.push(`<tr class="text-center ${RowClass}">
 				<td>
 					<strong class="${RankClass} td-tooltip" data-original-title="${HTML.i18nTooltip(RankTooltip.join('<br>'))}">${RankText}</strong>
@@ -494,6 +527,11 @@ let Calculator = {
 				<td>
 					<strong class="${GewinnClass} td-tooltip copy-fp" data-copy="${ForderGewinn}" data-original-title="${HTML.i18nTooltip(GewinnTooltip.join('<br>'))}">${GewinnText}</strong>
 				</td>
+				<td>
+    				 <strong class="${MinSecureClass}">${MinSecureText}</strong>
+    		    </td>
+                <td class="text-center">${KursText}</td>
+
 				<td> ${HTML.Format(BPRewards[Rank])} </td>
 				<td> <small> ${HTML.Format(MedalRewards[Rank])} </small> </td>
 			</tr>`);
@@ -507,6 +545,19 @@ let Calculator = {
 		});
 	},
 
+	/**
+	 * Formats the course
+	 *
+	 * @param Kurs
+	 */
+	FormatKurs: (Kurs) => {
+		if (Kurs === 0) {
+			return '-';
+		}
+		else {
+			return HTML.Format(Kurs) + '%';
+		}
+	},
 
 	GetRecurringQuestsLine: (PlaySound) => {
 		let h = [],

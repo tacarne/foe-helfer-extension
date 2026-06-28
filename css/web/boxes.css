@@ -794,6 +794,14 @@ p {
 [id$=discord-Btn] span {
 	background-image: url('../images/menu/discord.png');
 }
+[id$=guildBattles-Btn] span {
+	background-image: url('../images/menu/guildBattles.png');
+}
+
+[id$=ignoreList-Btn] span {
+	background-image: url('../images/menu/ignore.png');
+}
+
 
 /***********************************************************************************/
 

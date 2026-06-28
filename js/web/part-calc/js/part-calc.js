@@ -1272,7 +1272,26 @@ let Parts = {
 
 		if (Parts.CopyIncludePlayer) Ret.push(Parts.CopyPlayerName);
 
-		if (Parts.CopyIncludeGB) Ret.push(Parts.CopyBuildingName);
+        const gbNames = {
+            "La galaxie bleue": "galaxie",
+            "L'arche": "arche",
+            "Vaisseau de guerre stellaire": "vaisseau",
+            "Saturne VI porte HYDRE": "hydre",
+            "Saturne VI porte CENTAURE": "centaure",
+            "Saturne VI porte PÉGASE": "pégase",
+            "Observatoire": "obs",
+            "Orangerie arctique": "orangerie",
+            "Statue de Zeus": "zeus",
+            "Catalyseur cosmique": "catalyseur",
+        };
+
+        let gbName = Parts.CopyBuildingName;
+
+        if (gbNames[gbName]) {
+            gbName = gbNames[gbName];
+        }
+
+		if (Parts.CopyIncludeGB) Ret.push(gbName);
 
 		if (Parts.CopyIncludeLevelString) Ret.push(i18n('Boxes.OwnpartCalculator.OptionsLevelUp'));
 
