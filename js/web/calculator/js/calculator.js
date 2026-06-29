@@ -510,7 +510,7 @@ let Calculator = {
 
 			// Taux (SaveRankCosts / FPNettoRewards * 100)
 			let KursText;
-			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit' || SaveStates[Rank] === 'Self' || SaveRankCosts[Rank] === undefined || FPNettoRewards[Rank] === 0) {
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit' || SaveRankCosts[Rank] === undefined || FPNettoRewards[Rank] === 0) {
 				KursText = '-';
 			} else {
 				let KursVal = MainParser.round(SaveRankCosts[Rank] / FPNettoRewards[Rank] * 1000) / 10;
