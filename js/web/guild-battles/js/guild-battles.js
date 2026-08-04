@@ -350,7 +350,6 @@ let GuildBattles = {
 		lines.push(i18n('Boxes.GuildBattles.From')     + ' : ' + GuildBattles.FormatDate(snapB.timestamp));
 		lines.push(i18n('Boxes.GuildBattles.To')       + ' : ' + GuildBattles.FormatDate(snapA.timestamp));
 		lines.push(i18n('Boxes.GuildBattles.Duration') + ' : ' + dur);
-		lines.push('');
 
 		// Only players with positive diff, sorted desc
 		const rows = [];
@@ -364,6 +363,9 @@ let GuildBattles = {
 			}
 		}
 		rows.sort((a, b) => b.diff - a.diff);
+
+		lines.push(i18n('Boxes.GuildBattles.NbPlayers') + ' : ' + rows.length);
+		lines.push('');
 
 		for (const row of rows) {
 			lines.push(row.name + ' : +' + row.diff);

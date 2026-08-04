@@ -1765,6 +1765,7 @@
     "Boxes.GuildBattles.CopyComparison": "Copier la comparaison",
     "Boxes.GuildBattles.DeleteGuild": "Supprimer cette guilde",
     "Boxes.GuildBattles.Duration": "Durée",
+    "Boxes.GuildBattles.NbPlayers": "Nombre de joueurs",
     "Boxes.GuildBattles.Export": "Exporter JSON",
     "Boxes.GuildBattles.From": "Du",
     "Boxes.GuildBattles.HelpLink": "https://github.com/mainIine/foe-helfer-extension",
