@@ -10,17 +10,24 @@
 	"_menu_box",
 	"indexdb",
 	"kits",
+	"inventory",
 	"allies",
 	"outposts",
 	"profile",
 	"unit",
-	"calculator",
+	{
+		"name": "calculator",
+		"parts": ["settings"]
+	},
 	"infoboard",
 	{
 		"name": "productions",
 		"parts": ["rating", "tables"]
 	},
-	"part-calc",
+	{
+		"name": "part-calc",
+		"parts": ["copybox", "powerleveling", "settings"]
+	},
 	"alerts",
 	{
 		"name": "guild_fights",
@@ -60,6 +67,7 @@
 	"idleGame",
 	"scoutingtimes",
 	"discord",
+	"webrequest",
 	"bettermusic",
 	"minigame_aztecs",
 	"recurring-quests",

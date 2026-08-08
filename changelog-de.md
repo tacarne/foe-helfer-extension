@@ -1,5 +1,157 @@
 ## Extension Changelog
 
+##### 4.5.0.0
+
+**Neu**
+- Inventar-Übersicht:
+  - Neues Modul: das komplette Inventar durchsuchbar in einer Box — mit Eigenschafts-Filter für Gebäude (Forge-Punkte, Kampfboosts, Güter, Einheiten, Zufriedenheit, Quanten-Inkursion u.v.m.)
+  - Bei aktivem Filter zeigt jede Kachel den Wert der gewählten Eigenschaft, auf- und absteigend sortierbar; Gebäude-Fragmente zeigen ihren Fortschritt und werden wie ihr fertiges Gebäude bewertet
+  - Gebäude-Tooltips wie in der Effizienzbewertung, automatische Aktualisierung bei Inventar-Änderungen; Historische Verbündete bleiben ihrer eigenen Box vorbehalten
+  - Sortierung „Zuletzt eingelagert“: zeigt mit Zeitangabe, was zuletzt ins Inventar gelangt ist (z. B. durch die Stadt-Ernte) — beim Öffnen des Inventar-Protokolls im Spiel wird dessen exakte Historie übernommen, zusätzlich wird jeder Zuwachs live erfasst
+
+- Web Requests:
+  - Neues Modul: schicke Sektor-Daten aus den Gildengefechten an deinen eigenen Server — als GET mit URL-Parametern oder als POST mit JSON- oder Formular-Body ($_GET/$_POST)
+  - Frei konfigurierbare Profile mit Platzhaltern (#name, #time, #attrition, #guild, #vp, #neighbors u.v.m.), Vorschau und Test-Requests mit Beispieldaten
+  - Requests sind fire-and-forget: Es wird nicht auf eine Antwort gewartet, der Server braucht keine CORS-Konfiguration
+  - In den Einstellungen der Gildengefechte auswählbar: einzelne Sektoren oder die ganze Auswahl neben den Discord-Buttons versenden
+
+**Update**
+- Discord Webhooks:
+  - Webhook-URLs können optional eine Thread-ID erhalten — die Nachricht landet dann in einem bestimmten Thread bzw. Forum-Beitrag des Channels, auch bei den Gildengefecht-Buttons
+  - Der automatische Versand (mit dem Webhook-Rework in 4.3.0.0 weggefallen) ist wieder integriert — jetzt zeitgesteuert statt beim ersten Angriff: In den Gildengefecht-Einstellungen aktivierbar, angrenzende gegnerische Sektoren werden einmalig mit einstellbarem Vorlauf vor der Öffnung an den gewählten Webhook gesendet (mit Vorlage, solange das Fenster geöffnet ist)
+  - Hilfe-Fragezeichen in der Titelleiste und in den Gildengefecht-Einstellungen; Platzhalter-Übersicht im Vorlagen-Formular in Monospace, jetzt inkl. #player und #world
+  - Die Box lädt ihre Daten beim Öffnen neu (wichtig bei mehreren Spiel-Tabs) und offene Gildengefecht-Einstellungen aktualisieren sich sofort, sobald daneben Webhooks oder Vorlagen angelegt oder gelöscht werden
+- Blaue Galaxy:
+  - Die Länge der Liste kann selber bestimmt werden und ist dadurch nicht mehr auf 50 festgeschrieben
+  - Beim hover über dem Namen wird die Gebäude-Grafik angezeigt um das Gebäude besser identifizieren zu können
+  - Die Fragmentspalte, wenn sie eingeblendet ist, ist nun sortierbar nach Namen
+- Marktübersicht:
+  - Neuer Filter „Für Forschung benötigt": zeigt nur Angebote, deren Gut für die noch nicht erforschten Technologien gebraucht wird und bei denen der eigene Bestand nicht ausreicht — vielen Dank [wolf128058](https://github.com/wolf128058) für die Umsetzung!
+- Forschungskosten:
+  - Güter, die du selbst herstellen kannst, werden grün hervorgehoben; läuft deren Produktion gerade, erscheinen sie zusätzlich kursiv — vielen Dank [wolf128058](https://github.com/wolf128058) für die Umsetzung!
+- Gebäude-Tooltip:
+  - Forge-Punkt-, Güter-, Münz- und Vorrats-Produktionen zeigen jetzt die mit deinen aktiven Produktions-Boosts tatsächlich eingesammelte Menge; klein in Klammern dahinter stehen Basiswert und Boost-Prozent mit dem passenden Boost-Symbol (z.B. in der Effizienzbewertung, Inventar-Übersicht und Stadtkarte)
+
+**Bugfix**
+- Gildengefechte: Bereits abgelaufene Sektoren werden nicht mehr in der Live-Box angezeigt — beim Aufbau werden sie gegen die aktuelle Zeit gefiltert, ein interner Timer räumt zusätzlich alte Zeilen ab, wenn keine Karten-Updates mehr eintreffen
+
+---
+
+##### 4.4.4.0
+
+**Neu**
+- Gebäude-Effizienzbewertung:
+  - Neue Option "Austausch-Vorschläge": Inventar-Gebäude erhalten ein ⇄-Symbol, das beim Überfahren bis zu drei Kombinationen der am schlechtesten bewerteten Stadt-Gebäude vorschlägt, deren Grundflächen die Fläche des neuen Gebäudes exakt ergeben — die Baurichtung wird beachtet (3x2 ≠ 2x3)
+
+- Shop Assistent:
+  - Gebäude-Tooltips zeigen jetzt die Gebäudegrafik unter der Kopfzeile
+
+**Update**
+- Gebäude-Effizienzbewertung:
+  - Die Anzeige-Optionen der Kopfleiste sind in ein aufgeräumtes "Optionen"-Dropdown mit Beschriftungen umgezogen
+  - Der Größen-Filter zeigt die ausgewählten Werte direkt im Knopf an und wird hervorgehoben, solange er aktiv ist
+  - Inventar-Tooltip - Ist ein Erhaben-Kit vorrätig und das Gebäude die direkte Basis, wird der Erhaben-Schritt als erste Option mit machbarer Anzahl angezeigt
+
+- Historische Verbündete:
+  - Die Liste zeigt jetzt die Portraits der Verbündeten — auch bei unzugewiesenen Verbündeten und Fragmenten
+  - Beim Überfahren eines Portraits erscheint das große Artwork des Verbündeten als Tooltip
+
+**Bugfix**
+- City Builder:
+  - Gebäude mit 2-spurigem Straßenbedarf stehen jetzt an doppelt breiten Straßenzügen (2x2-Blöcke), die lückenlos bis zum Rathaus führen — auf der Karte dunkler dargestellt
+  - Kettengebäude stehen jetzt in Kettenreihenfolge direkt nebeneinander (von links nach rechts), nur der Kettenkopf braucht den Straßenanschluss
+- Stadtkarte:
+  - "Auf der Karte zeigen" zentriert die Ansicht jetzt korrekt auf das Gebäude — auch am Stadtrand und in der Schrägansicht; bei mehreren Gebäuden auf die Mitte der Gruppe
+- Inventar:
+  - Shop-Käufe aktualisieren den Inventarbestand jetzt sofort in allen Boxen (z.B. Shop Assistent, Sets und Ketten)
+- Shop Assistent:
+  - Die Einstellung "Nur entsperrte" überlebt jetzt ein Neuladen
+  - Freischalt-Bedingungen mit Seltenheits-Anforderung zeigen das Icon der jeweiligen Seltenheit statt immer "gewöhnlich"
+- Forge-Punkte:
+  - FP-Sammler: Belohnungen im neuen Format von Spiel-Update 1.340 (ohne "context"-Feld) werden wieder erfasst
+
+---
+
+##### 4.4.3.1
+
+**Bugfix**
+- GG - Spielerübersicht:
+  - Versionsdiskrepanz führte zu Fehlern
+
+---
+
+##### 4.4.3.0
+
+**Neu**
+- LG Rechner:
+  - Neuer Knopf in der Titelleiste, um die Ansicht zu teilen: "LG Fördern" (Kostenrechner) und "LG Rechner" (Eigenanteilsrechner) werden dann wieder gleichzeitig als getrennte Fenster angezeigt
+  - In der geteilten Ansicht behält der LG Rechner das zuletzt geöffnete eigene LG, wenn ein fremdes LG geöffnet wird, und öffnet sich automatisch nur bei eigenen LG (außer "Diese Ansicht für LG von Anderen nutzen" ist aktiv); fremde LG landen im Fenster "LG Fördern"
+  - Die Einstellung wird gespeichert; ohne geteilte Ansicht wechselt die Box wie bisher automatisch zwischen den beiden Rechnern
+
+- Gebäude-Effizienzbewertung:
+  - Neuer Schalter in der Kopfzeile, um pro Gebäudekette nur die höchste erreichbare Stufe anzuzeigen (niedrigere Stufen aus Stadt und Inventar werden ausgeblendet)
+
+- GG:
+  - Beim Kopieren der Sektor-Zeiten können jetzt auch Zermürbung, Fokus-Ziel (🎯) und Siegpunkte mit kopiert werden — auswählbar über ein neues Untermenü in den Einstellungen
+
+**Update**
+- Gebäude-Sets und -Ketten: Die Liste der Sets wird jetzt aus den Spieldaten erzeugt statt aus einer mitgelieferten Liste — neue Sets und Ketten erscheinen ohne Extension-Update
+
+**Bugfix**
+- Gebäude-Effizienzbewertung:
+  - Beim Tippen im Suchfeld werden nicht passende Zeilen jetzt ausgeblendet (bisher wurden Treffer nur markiert)
+  - Tooltips bleiben nicht mehr stehen, wenn die Tabelle neu aufgebaut wird (z.B. nach Klick auf eine der Checkboxen)
+
+- Gebäude-Sets und -Ketten:
+  - Als Fragment-Bündel vorliegende Kits werden beim Zusammensetzen von Gebäuden aus dem Inventar korrekt gezählt
+  - Zeitalter-basierte Auswahl-Kits lassen die Berechnung nicht mehr abstürzen
+  - Die Kit-Zählung im Inventar-Tooltip enthält keine Kits aus verworfenen Kombinationen mehr
+
+- LG Fördern:
+  - Die Hinweise "Stufe nicht freigeschaltet" und "keine Straßenverbindung" werden wieder sauber angezeigt
+
+- GG:
+	- Countdown-Tab: Sektoren, deren Verbindung bis zur Öffnung gesichert ist, werden wieder unterstrichen (die Markierung war mit dem letzten Update verloren gegangen)
+
+- Stadtplaner:
+	- Schlägt das Übermitteln der Stadtdaten fehl, wird der Fehler jetzt immer als Meldung angezeigt (auch bei Server- und Netzwerkfehlern), statt dass stillschweigend nichts passiert
+	- Der Server meldet Fehler beim Speichern jetzt mit einer verständlichen Ursache zurück; unkritische Probleme (z.B. Cache-Dateien) werden als Warnung angezeigt, die Stadt wird trotzdem gespeichert
+
+---
+
+##### 4.4.2.0
+
+**Neu**
+- GG:
+  - Neue Zermürbungs-Spalte im Countdown-Tab (per Einstellung abschaltbar): farbcodiert (20% hellblau, 40/60% orange, ab 80% rot) und live berechnet
+  - Die Sperr-Hand der Gilde wird jetzt wie das Fadenkreuz in den Tabellen angezeigt und auf der GildenKarte (Box)
+  - Bauslot-Übersicht: Sektoren mit freien Slots werden dezent rot markiert, solange die 20%-Zermürbungsgrenze noch nicht erreicht ist
+  - Gildenübersicht: neue Spalte mit der Anzahl der aktuell gehaltenen Provinzen jeder Gilde
+
+- City Builder:
+  - Neuer Button "City Builder" in der Stadtübersicht (nur in der eigenen Hauptstadt): berechnet einen kompakten Layout-Vorschlag für die Stadt
+  - Mehrere Algorithmen und Bau-Reihenfolgen treten ein paar Sekunden lang gegeneinander an, das beste Ergebnis gewinnt: alle Gebäude untergebracht, mit so wenig Straßen wie möglich
+  - Legendäre Gebäude werden direkt am Kartenrand verschachtelt und nur über einzelne Straßenfelder angebunden; Gebäude ohne Straßenbedarf stopfen Lücken abseits der Straßen, die restliche Freifläche bleibt als ein zusammenhängendes Stück erhalten
+  - Die Karte lässt sich per Drag verschieben; im Pop-out-Fenster wird sie automatisch zentriert und eingepasst
+
+**Update**
+- Technologien:
+  - Die Ressourcen-Tabelle ist jetzt per Klick auf die Spaltenköpfe sortierbar
+
+- GG:
+  - Die Zermürbungs-Spalte steht jetzt direkt neben der Provinz-Spalte; ohne gespeicherte Einstellungen ist sie standardmäßig eingeblendet und die VP-Spalte ausgeblendet
+  - Siegpunkte, Zermürbung und Bauslots aktualisieren sich live in allen Tabs; das Gilden-Ranking übernimmt neue Siegpunkte ebenfalls sofort
+  - Eroberte Sektoren wechseln sofort in den passenden Tab und zeigen direkt den neuen Gildennamen
+  - Die Einstellung "VP-Spalte anzeigen" gilt jetzt auch in der Bauslot-Übersicht
+
+**Bugfix**
+- GG:
+  - Entfernte Sektor-Markierungen (Fadenkreuz/Sperr-Hand) verschwinden jetzt auch aus der Box statt hängen zu bleiben
+- Stadtübersicht:
+  - Gebäude-Filter, "Daten kopieren" und "Stadtplaner" fehlten, wenn die Box von einer anderen Karte aus geöffnet wurde (z. B. GG oder GEX); sie erscheinen jetzt überall dort, wo die eigene Hauptstadt angezeigt wird
+
+---
+
 ##### 4.4.1.1
 
 **Bugfix**

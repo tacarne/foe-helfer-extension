@@ -1,5 +1,162 @@
 ## Extension Changelog
 
+##### 4.5.0.0
+
+**New**
+- Inventory Overview:
+  - New module: browse your complete inventory in one box — with a property filter for buildings (Forge Points, unit boosts, goods, units, happiness, Quantum Incursion and more)
+  - With an active filter every tile shows the value of the selected property, sortable ascending/descending; building fragments show their progress and are rated like their assembled building
+  - Building tooltips like in the efficiency rating, automatic refresh on inventory changes; Historical Allies stay in their own box
+  - "Recently added" sort: shows with a timestamp what last entered the inventory (e.g. from collecting the city) — opening the game's inventory log takes over its exact history, in addition every stock increase is tracked live
+
+- Web Requests:
+  - New module: send battleground sector data to your own server — as GET with URL parameters or as POST with a JSON or form body ($_GET/$_POST)
+  - Freely configurable profiles with placeholders (#name, #time, #attrition, #guild, #vp, #neighbors and more), preview and test requests with sample data
+  - Requests are fire-and-forget: sent without waiting for a response, no CORS setup needed on the server
+  - Selectable in the Guild Battlegrounds settings: send single sectors or the whole selection next to the Discord buttons
+
+**Update**
+- Discord Webhooks:
+  - Webhook URLs can optionally carry a thread ID — the message is then posted into a specific thread or forum post of the channel, including the Guild Battlegrounds buttons
+  - Automatic sending (dropped with the webhook rework in 4.3.0.0) is back — now time-based instead of on the first attack: enable it in the Guild Battlegrounds settings, adjacent enemy sectors are sent once to the selected webhook with a configurable lead time before they open (with template, as long as the window is open)
+  - Help question mark in the title bar and in the Guild Battlegrounds settings; placeholder overview in the template form in monospace, now including #player and #world
+  - The box reloads its data on opening (important with multiple game tabs) and open Guild Battlegrounds settings refresh immediately as soon as webhooks or templates are created or deleted next to them
+- Blue Galaxy:
+	- You can set the length of the list yourself, so it is no longer fixed at 50
+	- When you hover over the name, the building graphic is displayed to help you identify the building more easily
+	- The ‘Fragments’ column, when displayed, can now be sorted by name
+- Market Filter:
+  - New filter "Needed for research": only shows offers whose good is still needed for your unresearched technologies and where your current stock is insufficient — many thanks to [wolf128058](https://github.com/wolf128058) for contributing this!
+- Tech Tree Research Costs:
+  - Goods you can produce yourself are highlighted in green; goods currently in active production are additionally shown in italics — many thanks to [wolf128058](https://github.com/wolf128058) for contributing this!
+- Building tooltip:
+  - Forge Point, goods, coin and supply productions now show the amount you actually collect with your active production boosts; the base value and boost percentage follow in small print in parentheses with the matching boost icon (e.g. in the efficiency rating, Inventory Overview and city map)
+
+**Bugfix**
+- Guild Battlegrounds: Expired sectors no longer linger in the live box — they are filtered against the current time on rebuild, and an internal timer additionally cleans up old rows when no map updates arrive
+
+---
+
+##### 4.4.4.0
+
+**New**
+- Building efficiency rating:
+  - New option "Replacement suggestions": inventory buildings get a ⇄ icon that suggests on hover up to three combinations of the worst rated city buildings whose footprints exactly tile the area of the new building — orientation is respected (3x2 ≠ 2x3); Great Buildings and limited buildings are never suggested
+
+- Shop Assistant:
+  - Building tooltips now show the building image below the header
+
+**Update**
+- Building efficiency rating:
+  - The display options of the header bar moved into a clean "Options" dropdown with labels
+  - The size filter shows the selected values directly on the button and is highlighted while a filter is active
+  - Inventory tooltip: if an ascended kit is in stock and the building is its direct base, the ascended step is shown as the first option with the feasible amount; the "0x" kit stock badge is gone
+
+- Historical Allies:
+  - The list now shows the allies' portraits — including unassigned allies and fragments
+  - Hovering a portrait shows the ally's large artwork as a tooltip
+  - The list rows are now vertically centered
+
+- Shop Assistant:
+  - Code reworked and documented
+
+**Bugfix**
+- City Builder:
+  - Buildings requiring a two-lane street now sit along double-width road strips (2x2 blocks) leading all the way to the town hall — drawn darker on the map
+  - Chain buildings now stand side by side in chain order (left to right), only the chain head needs the street connection
+- City map:
+  - "Show on map" now correctly centers the view on the building — even at the city edge and in the cavalier perspective; with multiple buildings it centers on the middle of the group
+- Inventory:
+  - Store purchases now update the inventory stock immediately in all boxes (e.g. Shop Assistant, Sets and Chains)
+- Shop Assistant:
+  - The "Only unlocked" setting now survives a reload
+  - Unlock conditions with a rarity requirement show the icon of the actual rarity instead of always "common"
+- Forge points:
+  - FP Collector: rewards in the new format of game update 1.340 (without a "context" field) are recorded again
+
+---
+
+##### 4.4.3.1
+
+**Bugfix**
+- GB - Player Overview:
+	- Version discrepancies led to errors
+
+---
+
+##### 4.4.3.0
+
+**New**
+- GB Calculator:
+  - New button in the title bar to split the view: "GB Cost Calc" and "GB Calculator" are shown as separate windows at the same time again
+  - In the split view the GB Calculator keeps the last opened own GB when a foreign GB is opened, and only auto-opens for own GBs (unless "Use current view for GBs of other players" is enabled); foreign GBs go to the "GB Cost Calc" window
+  - The setting is saved; without the split view the box keeps switching automatically between the two calculators as before
+
+- Building efficiency rating:
+  - New toggle in the header row to show only the highest obtainable stage of each upgradeable building chain (lower stages from city and inventory are hidden)
+
+- GBG:
+  - Copying the sector timers can now also include attrition, the guild's focus target (🎯) and victory points — selectable via a new submenu in the settings
+
+**Update**
+- Sets and Chains: the set list is now generated from the game data instead of a bundled list, so new sets and chains show up without an extension update
+
+**Bugfix**
+- Building efficiency rating:
+  - Typing in the search field now hides all rows that do not match (previously they were only highlighted)
+  - Tooltips no longer stay behind when the table is rebuilt (e.g. after clicking one of the checkboxes)
+
+- Sets and Chains:
+  - Kits stored as fragment bundles are counted correctly when assembling buildings from the inventory
+  - Era based selection kits no longer break the inventory matching
+  - The kit count in the inventory tooltip no longer includes kits from discarded combinations
+
+- GB Cost Calc:
+  - The hints "level not unlocked" and "no street connection" are shown again
+
+- GBG:
+  - Countdown tab: sectors whose connection is secured until they unlock are underlined again (the marking got lost with the last update)
+
+- City Planner:
+  - If submitting the city data fails, the error is now always shown as a message (including server and network errors) instead of silently doing nothing
+  - The server now reports save errors with a readable cause; non-critical problems (e.g. cache files) are shown as a warning while the city is still saved
+
+---
+
+##### 4.4.2.0
+
+**New**
+- GBG:
+  - New attrition column in the countdown tab (can be disabled in the settings): color coded (20% light blue, 40/60% orange, 80%+ red)
+  - The guild's blocking hand marker is now shown in the tables just like the crosshair
+  - Hovering a table row outlines the sector on the province map in the guild's colour
+  - Building slots tab: sectors with empty slots get a subtle red highlight as long as the 20% attrition minimum has not been reached yet
+  - Guild overview: new column showing the number of provinces each guild currently holds
+
+- City Builder:
+  - New "City Builder" button in the city overview (own main city only): computes a compact layout suggestion for your city
+  - Several algorithms and build orders compete for a few seconds, the best result wins: every building placed, with as few roads as possible
+  - Great buildings are nested right against the map border and connected by single road tiles; buildings that need no road plug the gaps away from the roads, and the remaining free space stays in one contiguous piece
+  - The map can be dragged around; in the pop-out window it is centered and fitted automatically
+
+**Update**
+- Technologies:
+  - The resource table can now be sorted by clicking the column headers
+
+- GBG:
+  - The attrition column now sits right next to the province column; without saved settings it is shown by default while the VP column starts hidden
+  - Victory points, attrition and building slots update live in all tabs; the guild ranking picks up new victory points right away as well
+  - Conquered sectors instantly switch to the correct tab and show the new guild name
+  - The "Show VP column" setting now also applies to the building slots tab
+
+**Bugfix**
+- GBG:
+  - Removed sector markers (crosshair/blocking hand) now disappear from the box instead of getting stuck
+- City overview:
+  - The building filter, "Copy data" and "City planner" buttons were missing when the box was opened from another map (e.g. GBG or GE); they now show up whenever your own main city is displayed
+
+---
+
 ##### 4.4.1.1
 
 **Bugfix**

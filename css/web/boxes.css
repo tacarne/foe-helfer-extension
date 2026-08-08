@@ -264,6 +264,22 @@ a[target="_blank"] svg {
 	filter: hue-rotate(210deg);
 }
 
+.btn.webrequest {
+    background-image: url('../../js/web/webrequest/images/webrequest.svg'), var(--btn-bg);
+    background-size: 75%, cover;
+    background-repeat: no-repeat, repeat;
+    background-position: center;
+	width: 22px;
+	min-height: 22px;
+}
+
+.btn.webrequest:hover, .btn.webrequest:active {
+    background-image: url('../../js/web/webrequest/images/webrequest.svg'), var(--btn-bg-active);
+    background-size: 75%, cover;
+    background-repeat: no-repeat, repeat;
+    background-position: center;
+}
+
 .btn-group {
 	display: inline-flex;
 }
@@ -527,6 +543,10 @@ table.foe-table.vertical-top td {
 	vertical-align: top;
 }
 
+tr.vertical-middle td {
+	vertical-align: middle;
+}
+
 table.foe-table tr th,
 table.foe-table tr td, ul.foe-table li {
 	padding: 2px 5px;
@@ -676,10 +696,6 @@ p {
 	background-image: url('../images/menu/recurringQuests.png');
 }
 
-[id$=campagneMap-Btn] {
-	display: none;
-}
-
 [id$=cityMap-Btn] span {
 	background-image: url('../images/menu/citymap.png');
 }
@@ -734,6 +750,10 @@ p {
 
 [id$=kits-Btn] span {
 	background-image: url('../images/menu/kits.png');
+}
+
+[id$=inventory-Btn] span {
+	background-image: url('../../js/web/x_img/inventory.png');
 }
 
 [id$=alerts-Btn] span {
@@ -802,6 +822,11 @@ p {
 	background-image: url('../images/menu/ignore.png');
 }
 
+
+[id$=webRequest-Btn] span {
+	background-image: url('../../js/web/webrequest/images/webrequest.svg');
+	background-size: 65%;
+}
 
 /***********************************************************************************/
 
@@ -1224,6 +1249,7 @@ FP-Bar */
 .window-minimize,
 .window-settings,
 .window-map,
+.window-split,
 .window-close,
 .window-head:not(span),
 .foe-helper-overlay,
@@ -1242,6 +1268,7 @@ a {
 .window-minimize:hover,
 .window-settings:hover,
 .window-map:hover,
+.window-split:hover,
 .window-close:hover,
 .window-head:not(span):hover,
 .button-own:hover,
@@ -1411,7 +1438,24 @@ a:hover {
 	position: relative;
 }
 
-.window-ask:hover, .open .window-minimize:hover, .closed .window-minimize:hover, .window-settings:hover, .window-map:hover, .window-popout:hover, .window-close:hover {
+.window-split {
+	/* the icon is drawn by the ::after element, move the sprite layer to an empty region */
+	background-position: -120px -95px, 0 0;
+	position: relative;
+}
+
+.window-split::after {
+	content: '';
+	position: absolute;
+	inset: 4px;
+	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23c8cdd4' stroke-width='1.6'%3E%3Crect x='1' y='2.5' width='6.2' height='11' rx='1'/%3E%3Crect x='8.8' y='2.5' width='6.2' height='11' rx='1'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.window-split.active::after {
+	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg stroke='%23ffd063' stroke-width='1.6'%3E%3Crect x='1' y='2.5' width='6.2' height='11' rx='1' fill='%23ffd06355'/%3E%3Crect x='8.8' y='2.5' width='6.2' height='11' rx='1' fill='none'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.window-ask:hover, .open .window-minimize:hover, .closed .window-minimize:hover, .window-settings:hover, .window-map:hover, .window-popout:hover, .window-close:hover, .window-split:hover {
 	filter: brightness(130%);
 }
 

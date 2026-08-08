@@ -639,6 +639,12 @@ GetFights = () =>{
 	});
 
 
+	// Inventory delta sent e.g. after item store purchases: {id, amount, __class__: "InventoryItemUpdate"}
+	FoEproxy.addHandler('InventoryService', 'updateItem', (data, postData) => {
+		MainParser.UpdateInventoryItemAmount(data.responseData);
+	});
+
+
 	// --------------------------------------------------------------------------------------------------
 	// --------------------------------------------------------------------------------------------------
 	// Es wurde das LG eines Mitspielers angeklickt, bzw davor die Übersicht
@@ -747,8 +753,8 @@ GetFights = () =>{
 		}
 		
 		if (data.responseData[0]?.player_id === ExtPlayerID) {
-			
-			if ($('#OwnPartBox').length > 0) {
+
+			if ($('#OwnPartBox').length > 0 || $('#CalculatorBox').length > 0) {
 				MainParser.CurrentGB.Entity.max_level = data.responseData[0]?.max_level;
 				Parts.CalcBody();
 			}
@@ -767,7 +773,7 @@ GetFights = () =>{
 		}
 		
 		if (formattedData.responseData[0]?.player_id === ExtPlayerID) {
-			if ($('#OwnPartBox').length > 0) {
+			if ($('#OwnPartBox').length > 0 || $('#CalculatorBox').length > 0) {
 				MainParser.CurrentGB.Entity.max_level = formattedData.responseData[0]?.max_level;
 				Parts.CalcBody();
 			}
@@ -846,7 +852,7 @@ GetFights = () =>{
 		$('#partCalc-Btn').removeClass('hud-btn-red');
 		$('#partCalc-Btn-closed').remove();
 
-		if ($('#OwnPartBox').length > 0) {
+		if ($('#OwnPartBox').length > 0 || $('#CalculatorBox').length > 0) {
 			Parts.CalcBody();
 		}
 	}
@@ -898,27 +904,33 @@ GetFights = () =>{
 
 
 	// --------------------------------------------------------------------------------------------------
+	// WS frames may bundle several ServerResponse objects - process every message, not just the first
 	FoEproxy.addRawWsHandler((data) => {
-		let Msg = data?.[0];
-		if (!Msg || !Msg.requestClass || !Msg.responseData) return;
+		const messages = Array.isArray(data) ? data : [data];
 
-		let requestClass = Msg.requestClass;
-		let requestMethod = Msg.requestMethod;
-		let responseData = Msg.responseData;
+		for (const Msg of messages) {
+			if (!Msg?.requestClass || !Msg.responseData) continue;
 
-		// Goods Update after accepted Trade
-		if (requestMethod === "newEvent" && responseData.type === "trade_accepted") {
-			ResourceStock[responseData.need.good_id] += responseData.need.value;
-			FoEproxy.triggerFoeHelperHandler("ResourcesUpdated");
-		}
-		// Inventory Update, e.g. when receiving FP packages from GB leveling	
-		if (requestClass === 'InventoryService' && requestMethod === 'getItem') {
-			MainParser.UpdateInventoryItem(responseData);
-		}
+			const { requestClass, requestMethod, responseData } = Msg;
 
-		if (requestClass === 'InventoryService' && requestMethod === 'getItemAmount') {
-			MainParser.UpdateInventoryAmount(responseData);
+			// Goods Update after accepted Trade
+			if (requestMethod === 'newEvent' && responseData.type === 'trade_accepted') {
+				ResourceStock[responseData.need.good_id] += responseData.need.value;
+				FoEproxy.triggerFoeHelperHandler('ResourcesUpdated');
+			}
 
+			// Inventory Update, e.g. when receiving FP packages from GB leveling
+			if (requestClass === 'InventoryService' && requestMethod === 'getItem') {
+				MainParser.UpdateInventoryItem(responseData);
+			}
+
+			if (requestClass === 'InventoryService' && requestMethod === 'getItemAmount') {
+				MainParser.UpdateInventoryAmount(responseData);
+			}
+
+			if (requestClass === 'InventoryService' && requestMethod === 'updateItem') {
+				MainParser.UpdateInventoryItemAmount(responseData);
+			}
 		}
 	});
 
@@ -1507,8 +1519,9 @@ let MainParser = {
 	 * @param data
 	 * @param ep
 	 * @param successCallback
+	 * @param errorCallback optional - receives a readable message when the request itself fails (network, HTTP != 200, invalid JSON)
 	 */
-	send2Server: (data, ep, successCallback) => {
+	send2Server: (data, ep, successCallback, errorCallback) => {
 
 		let req = fetch(
 			ApiURL + ep + '/?player_id=' + ExtPlayerID + '&guild_id=' + ExtGuildID + '&world=' + ExtWorld,
@@ -1528,8 +1541,16 @@ let MainParser = {
 						response
 							.json()
 							.then(successCallback)
-							;
+							.catch(err => {
+								if (errorCallback) errorCallback('The server sent an invalid response: ' + err.message);
+							});
 					}
+					else if (errorCallback) {
+						errorCallback('The server responded with HTTP ' + response.status + ' (' + response.statusText + ')');
+					}
+				})
+				.catch(err => {
+					if (errorCallback) errorCallback('The server could not be reached: ' + err.message);
 				});
 		}
 	},
@@ -1871,6 +1892,25 @@ let MainParser = {
 		let ID = Item['id'];
 		MainParser.Inventory[ID] = Item;
 		FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
+	},
+
+
+	/**
+	 * Applies an InventoryItemUpdate delta ({id, amount}) to a known inventory entry.
+	 * Sent e.g. after item store purchases; unknown items get picked up by the next full sync.
+	 *
+	 * @param {{id: number, amount: number}|{id: number, amount: number}[]} update
+	 */
+	UpdateInventoryItemAmount: (update) => {
+		const updates = Array.isArray(update) ? update : [update];
+		let changed = false;
+		for (const upd of updates) {
+			if (upd?.id === undefined || upd.amount === undefined) continue;
+			if (!MainParser.Inventory[upd.id]) continue;
+			MainParser.Inventory[upd.id].inStock = upd.amount;
+			changed = true;
+		}
+		if (changed) FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
