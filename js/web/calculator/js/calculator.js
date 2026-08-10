@@ -274,6 +274,8 @@ let Calculator = {
 			investmentSteps = [];
 			let bonuses = JSON.parse(customButtons);
 
+            investmentSteps.push(Calculator.GetRealArcBonus());
+
 			bonuses.forEach(bonus => {
 				if (bonus === 'ark') {
 					investmentSteps.push(MainParser.ArkBonus);
@@ -340,7 +342,7 @@ let Calculator = {
 		let h = [];
 
 		let BestKurs = 999999,
-			arc = 1 + (MainParser.ArkBonus / 100),
+			arc = 1 + (Calculator.GetRealArcBonus() / 100),
 			ForderArc = 1 + (Calculator.ForderBonus / 100);
 
         let EigenPos,
@@ -733,6 +735,27 @@ let Calculator = {
 			return HTML.Format(Kurs) + '%';
 		}
 	},
+
+
+	GetRealArcBonus: () => {
+        const arcObject = Object.values(MainParser.CityMapData).find(
+            b => b.cityentity_id === 'X_FutureEra_Landmark1'
+        );
+
+        let arcBonus = 0;
+        if (arcObject.bonuses !== undefined && arcObject.bonuses.length > 0) {
+            for (let i = 0; i < arcObject.bonuses.length; i++) {
+                if (arcObject.bonuses[i].type === "contribution_boost") {
+                    arcBonus = arcObject.bonuses[i].value;
+                    break;
+                }
+            }
+        } else {
+            arcBonus = arcObject.bonus.value;
+        }
+        return arcBonus;
+    },
+
 
 	/**
 	 * Builds the "active recurring quest" line showing the FP still needed for
