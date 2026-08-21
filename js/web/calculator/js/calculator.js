@@ -270,11 +270,11 @@ let Calculator = {
 		let investmentSteps = [80, 90, 100, MainParser.ArkBonus],
 			customButtons = localStorage.getItem('CustomCalculatorButtons');
 
+        investmentSteps.push(Calculator.GetRealArcBonus());
+
 		if(customButtons) {
 			investmentSteps = [];
 			let bonuses = JSON.parse(customButtons);
-
-            investmentSteps.push(Calculator.GetRealArcBonus());
 
 			bonuses.forEach(bonus => {
 				if (bonus === 'ark') {
