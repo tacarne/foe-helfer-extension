@@ -48,6 +48,16 @@ let Calculator = {
 
 
 	/**
+	 * Contribution boost column (piggy bank): show the FP bonus granted by the own
+	 * contribution boost per rank, can be hidden in the settings. Like the game the
+	 * column is always hidden without an own contribution boost.
+	 *
+	 * @returns {boolean} true if the column is visible
+	 */
+	ShowBoostColumn: () => (MainParser.ArkBonus > 0 && localStorage.getItem('CalculatorShowBoostColumn') !== 'false'),
+
+
+	/**
 	 * Shows the cost calculator for the currently opened GB: loads the settings,
 	 * creates the own box in split view when missing and renders the content
 	 * (or a hint while no GB has been opened yet).
@@ -79,7 +89,7 @@ let Calculator = {
 				auto_close: true,
 				dragdrop: true,
 				minimize: true,
-				settings: 'Calculator.ShowCalculatorSettings()',
+				settings: () => Calculator.ShowCalculatorSettings(),
 				active_maps: "main"
 			});
 
@@ -197,6 +207,7 @@ let Calculator = {
 		}
 	},
 
+
 	/**
 	 * Renders the calculator content into the current box: header with building,
 	 * level and owner, the arc bonus buttons and the contribution table.
@@ -208,7 +219,7 @@ let Calculator = {
 		if(Calculator.ForderBonusPerConversation && MainParser.OpenConversation){
 			let StorageKey = 'CalculatorForderBonus_' + MainParser.OpenConversation,
 				StorageValue = localStorage.getItem(StorageKey);
-			
+
 			if(StorageValue !== null){
 				Calculator.ForderBonus = parseFloat(StorageValue);
 				ForderBonusLoaded = true;
@@ -217,7 +228,7 @@ let Calculator = {
 
 		if(!ForderBonusLoaded){
 			let ab = localStorage.getItem('CalculatorForderBonus');
-			if (ab !== null) 
+			if (ab !== null)
 				Calculator.ForderBonus = parseFloat(ab);
 		}
 
@@ -253,9 +264,9 @@ let Calculator = {
 		h.push('<div id="gbCalc"><div class="header text-center dark-bg p5">');
 		h.push('<strong><span class="building-name">' + BuildingName + '</span></strong>');
         h.push('<p style="margin: 0 0 5px">'+ Level + ' &rarr; ' + (Level + 1) + ' &middot; ' + i18n('Boxes.Calculator.MaxLevel') + ': ' + MaxLevel + (TierBadge ? ' &middot; ' + TierBadge : '') + '</p>');
- 
+
 		if (Calculator.PlayerName) {
-			h.push('<span class="player-name">' 
+			h.push('<span class="player-name">'
 				+ `<span class="activity activity_${PlayerDict[PlayerID]['Activity']}"></span> `
 				+ MainParser.GetPlayerLink(PlayerID, Calculator.PlayerName));
 
@@ -293,8 +304,8 @@ let Calculator = {
 		investmentSteps.forEach(bonus => {
 			h.push(`<button class="btn btn-mid btn-toggle-arc ${(bonus === Calculator.ForderBonus ? 'btn-active' : '')}${(bonus === MainParser.ArkBonus ? ' arkBonus' : '')}" data-value="${bonus}">${bonus}%</button>`);
 		});
-		
-		h.push(`<span data-original-title="${i18n('Boxes.Calculator.FriendlyInvestment')} x%">  <input type="number" id="costFactor" step="0.1" min="12" max="200" value="${Calculator.ForderBonus}"></span>`);
+
+		h.push(`<span data-original-title="${i18n('Boxes.Calculator.FriendlyInvestment')} x%">  <input type="number" id="costFactor" step="0.1" min="-100" max="200" value="${Calculator.ForderBonus}"></span>`);
 
         h.push('</div>');
         h.push('</div>');
@@ -343,7 +354,8 @@ let Calculator = {
 
 		let BestKurs = 999999,
 			arc = 1 + (Calculator.GetRealArcBonus() / 100),
-			ForderArc = 1 + (Calculator.ForderBonus / 100);
+			ForderArc = 1 + (Calculator.ForderBonus / 100),
+			ShowBoost = Calculator.ShowBoostColumn();
 
         let EigenPos,
             EigenBetrag = 0;
@@ -363,6 +375,7 @@ let Calculator = {
 			FPRewards = [],
 			BPRewards = [],
 			BPTierRewards = [], // blueprint rewards per rank split by tier: {tier, amount}[] (amount already boosted)
+			BoostRewards = [], // extra FP granted by the own contribution boost (piggy bank column)
 			MedalRewards = [],
 			ForderFPRewards = [],
 			ForderRankCosts = [],
@@ -410,6 +423,7 @@ let Calculator = {
 			FPRewards[Rank] = MainParser.round(FPNettoRewards[Rank] * arc);
 			BPRewards[Rank] = MainParser.round(BPRewards[Rank] * arc);
 			MedalRewards[Rank] = MainParser.round(MedalRewards[Rank] * arc);
+			BoostRewards[Rank] = FPRewards[Rank] - FPNettoRewards[Rank];
 
 			// Blueprints split by tier (multi-tier great buildings)
 			BPTierRewards[Rank] = (MainParser.CurrentGB.Rankings[i]['reward']['blueprintRewards'] || []).map(bp => ({
@@ -465,11 +479,11 @@ let Calculator = {
 					ExitLoop = true;
 				}
 				else {
-					if (ForderRankCosts[Rank] === RestFP) 
+					if (ForderRankCosts[Rank] === RestFP)
 						ForderStates[Rank] = 'LevelWarning';
-					else if (ForderRankCosts[Rank] <= ForderFPRewards[Rank]) 
+					else if (ForderRankCosts[Rank] <= ForderFPRewards[Rank])
 						ForderStates[Rank] = 'Profit';
-					else 
+					else
 						ForderStates[Rank] = 'NegativeProfit';
 				}
 
@@ -480,11 +494,11 @@ let Calculator = {
 					ExitLoop = true;
 				}
 				else {
-					if (SaveRankCosts[Rank] === RestFP) 
+					if (SaveRankCosts[Rank] === RestFP)
 						SaveStates[Rank] = 'LevelWarning';
-					else if (FPRewards[Rank] < SaveRankCosts[Rank]) 
+					else if (FPRewards[Rank] < SaveRankCosts[Rank])
 						SaveStates[Rank] = 'NegativeProfit';
-					else 
+					else
 						SaveStates[Rank] = 'Profit';
 				}
 
@@ -528,6 +542,8 @@ let Calculator = {
 			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Rate')) + '">' + i18n('Boxes.Calculator.Rate') + '</th>');
 			h.push('<th><span class="blueprint"' + GreatBuildings.BlueprintIconStyle(MainParser.CurrentGB.Tier) + ' title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.BPs')) + '"></span></th>');
 			h.push('<th><span class="medal" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Meds')) + '"></span></th>');
+			if (ShowBoost)
+				h.push('<th><span class="contribution-boost"' + GreatBuildings.ContributionBoostIconStyle(MainParser.CurrentGB.Tier) + ' title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Boost')) + '"></span></th>');
 		h.push('</thead>');
 
 		for (let Rank = 0; Rank < ForderRankCosts.length; Rank++) {
@@ -553,7 +569,7 @@ let Calculator = {
 				RankText = Rank + 1,
 				RankTooltip = [],
 
-				EinsatzClass = (ForderFPRewards[Rank] - EigenBetrag > StrategyPoints.AvailableFP ? 'error' : ''), 
+				EinsatzClass = (ForderFPRewards[Rank] - EigenBetrag > StrategyPoints.AvailableFP ? 'error' : ''),
 				EinsatzText = HTML.Format(ForderFPRewards[Rank]) + Calculator.FormatForderRankDiff(ForderRankDiff), //Default: Einsatz + ForderRankDiff
 				EinsatzTooltip = [HTML.i18nReplacer(i18n('Boxes.Calculator.TTForderCosts'), { 'nettoreward': FPNettoRewards[Rank], 'forderfactor': (100 + Calculator.ForderBonus), 'costs': ForderFPRewards[Rank] })],
 
@@ -589,7 +605,7 @@ let Calculator = {
 				}
 
 				EinsatzText = HTML.Format(Einzahlungen[Rank]);
-				if (Einzahlungen[Rank] !== ForderFPRewards[Rank]) 
+				if (Einzahlungen[Rank] !== ForderFPRewards[Rank])
 					EinsatzText += ' <small>(=' + HTML.Format(ForderFPRewards[Rank]) + ')</small>';
 				EinsatzText += Calculator.FormatForderRankDiff(ForderRankDiff);
 
@@ -650,17 +666,17 @@ let Calculator = {
 			// no clue why this is already set above and then cleared again?!
 			// RowClass = '';
 
-			if (ForderStates[Rank] === 'NotPossible' && SaveStates[Rank] === 'NotPossible') 
+			if (ForderStates[Rank] === 'NotPossible' && SaveStates[Rank] === 'NotPossible')
 				RowClass = 'text-grey';
-			else if (ForderStates[Rank] === 'Profit' && SaveStates[Rank] === 'Profit') 
+			else if (ForderStates[Rank] === 'Profit' && SaveStates[Rank] === 'Profit')
 				RowClass = 'bg-green';
-			else if (ForderStates[Rank] === 'WorseProfit' && SaveStates[Rank] === 'WorseProfit') 
+			else if (ForderStates[Rank] === 'WorseProfit' && SaveStates[Rank] === 'WorseProfit')
 				RowClass = 'text-grey';
-			else if (ForderStates[Rank] === 'Self' && SaveStates[Rank] === 'Self') 
+			else if (ForderStates[Rank] === 'Self' && SaveStates[Rank] === 'Self')
 				RowClass = 'bg-blue';
-			else if (ForderStates[Rank] === 'NegativeProfit' && SaveStates[Rank] === 'NegativeProfit') 
+			else if (ForderStates[Rank] === 'NegativeProfit' && SaveStates[Rank] === 'NegativeProfit')
 				RowClass = 'bg-red';
-			else if (ForderStates[Rank] === 'LevelWarning' && SaveStates[Rank] === 'LevelWarning') 
+			else if (ForderStates[Rank] === 'LevelWarning' && SaveStates[Rank] === 'LevelWarning')
 				RowClass = 'bg-yellow';
 
 			// Min. sécurisé
@@ -711,6 +727,7 @@ let Calculator = {
 
 				<td> ${GreatBuildings.FormatBlueprintRewards(BPTierRewards[Rank], BPRewards[Rank])} </td>
 				<td> <small> ${HTML.Format(MedalRewards[Rank])} </small> </td>
+				${ShowBoost ? `<td> <small> ${HTML.Format(BoostRewards[Rank])} </small> </td>` : ''}
 			</tr>`);
 		}
 
@@ -790,7 +807,7 @@ let Calculator = {
 			}
 		}
 
-		if (Calculator.LastRecurringQuests !== undefined && RecurringQuests !== Calculator.LastRecurringQuests) { 
+		if (Calculator.LastRecurringQuests !== undefined && RecurringQuests !== Calculator.LastRecurringQuests) {
 			if (PlaySound) { //Nicht durch Funktion PlaySound ersetzen!!! GetRecurringQuestLine wird auch vom EARechner aufgerufen.
 				helper.sounds.play("message");
 			}
@@ -820,7 +837,7 @@ let Calculator = {
 		}
 	},
 
-		
+
 	/**
 	 * Plays the notification sound if it is enabled in the settings.
 	 */

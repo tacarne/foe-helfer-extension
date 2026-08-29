@@ -21,26 +21,25 @@ const extID = ExtbaseData.extID,
 	devMode = ExtbaseData.devMode,
 	loadBeta = ExtbaseData.loadBeta;
 
-let ExistenceConfirmed = async (varlist)=>{
-	varlist = varlist.split('||')
-	return new Promise((resolve, reject) => {
+/**
+ * Waits until the given predicate returns a truthy value.
+ * Exceptions (e.g. a referenced module that is not loaded yet) count as "not ready".
+ *
+ * @param {function(): *} check predicate returning truthy once all dependencies exist
+ * @returns {Promise<void>}
+ */
+let ExistenceConfirmed = async (check)=>{
+	return new Promise((resolve) => {
 		let timer = () => {
-			let doResolve = true;
-			for (let x of varlist ) {
-				if (x.substr(0,2) == '$(' && eval(x).length === 0) { // jQuery object
-					doResolve = false
-					//console.log(x+' not yet defined');
-					break;
-				}
-				if (eval('typeof '+x) === 'undefined' || eval(x) === null || eval(x) === undefined) { // normal var
-					doResolve = false
-					//console.log(x+' not yet defined');
-					break;
-				}
+			let ready = false;
+			try {
+				ready = !!check();
+			} catch (e) {
+				// dependency not loaded yet
 			}
-			if (doResolve) 
+			if (ready)
 				resolve();
-			else 
+			else
 				setTimeout(timer, 100);
 		};
 		timer();
@@ -82,7 +81,7 @@ let ApiURL = 'https://api.foe-rechner.de/',
 	LGCurrentLevelMedals = undefined,
 	IsLevelScroll = false,
 	EventCountdown = false,
-	StartUpDone = new Promise(resolve => 
+	StartUpDone = new Promise(resolve =>
 			window.addEventListener('foe-helper#StartUpDone', resolve, {once: true, passive: true})),
 	Fights = [],
 	OwnUnits = [],
@@ -100,7 +99,7 @@ let GameTime = {
 	Offset: 0,
 	set:(time)=>{
 		GameTime.Offset = time-moment().unix();
-	},	
+	},
 	get:()=>{
 		return moment().unix()+GameTime.Offset;
 	}
@@ -140,8 +139,8 @@ const i18n_loadPromise = (async () => {
 		// warte dass i18n geladen ist
 		//console.log("await vendors loaded")
 		await vendorsLoadedPromise;
-		//console.log("vendors loaded");	
-		
+		//console.log("vendors loaded");
+
 		for (let languageData of languageDatas) {
 			i18n.translator.add({ 'values': JSON.parse(languageData) });
 		}
@@ -236,7 +235,7 @@ GetFights = () =>{
 
 	FoEproxy.addMetaHandler("building_families", (xhr,postData) => {
 		MainParser.BuildingFamilyLimits = JSON.parse(xhr.responseText)?.families;
-	})	
+	})
 	// Castle-System-Levels
 	FoEproxy.addMetaHandler('castle_system_levels', (xhr, postData) => {
 		MainParser.CastleSystemLevels = JSON.parse(xhr.responseText);
@@ -269,6 +268,11 @@ GetFights = () =>{
 
 		// Player-ID, Gilden-ID und Name setzen
 		MainParser.StartUp(data.responseData.user_data);
+
+		// prepend the world abbreviation to the tab title, e.g. "de11 - Forge of Empires"
+		if (!document.title.startsWith(ExtWorld)) {
+			document.title = `${ExtWorld} - ${document.title}`;
+		}
 
 		// check if DB exists
 		StrategyPoints.checkForDB(ExtPlayerID);
@@ -319,7 +323,7 @@ GetFights = () =>{
 		if (data.responseData.unlocked_features) {
 			MainParser.UnlockedFeatures = data.responseData.unlocked_features?.map(function(obj) { return obj.feature; });
 		} else {
-			$('script').each((i,s)=>{    
+			$('script').each((i,s)=>{
 				if (!s?.innerHTML?.includes("unlockedFeatures")) return
 				try {
 					let ulf = JSON.parse([...s.innerHTML.matchAll(/(unlockedFeatures:\ )(.*?)(,\n)/gm)][0][2])
@@ -332,7 +336,7 @@ GetFights = () =>{
 
 		//A/B Tests
 		MainParser.ABTests=Object.assign({}, ...data.responseData.active_ab_tests.map((x) => ({ [x.test_name]: x })));
-	
+
 		Stats.Init();
 		Alerts.init();
 	});
@@ -365,7 +369,7 @@ GetFights = () =>{
 	});
 
 	// QI map
-	FoEproxy.addHandler('GuildRaidsMapService', 'getOverview', (data, postData) => {		
+	FoEproxy.addHandler('GuildRaidsMapService', 'getOverview', (data, postData) => {
 		QiProgress.QiMap = data.responseData;
 	})
 
@@ -396,7 +400,7 @@ GetFights = () =>{
 
 	// Stadt wird wieder aufgerufen
 	FoEproxy.addHandler('CityMapService', 'getEntities', (data, postData) => {
-		if (!postData.map(x=>x.requestData?.[0]).includes('main')) { 
+		if (!postData.map(x=>x.requestData?.[0]).includes('main')) {
 			return;
 		}
 
@@ -598,11 +602,11 @@ GetFights = () =>{
 			MainParser.UpdatePlayerDict(data.responseData, 'PlayerList', data.requestMethod);
 		}
 		if (data.requestMethod === 'getSocialList') {
-			if (data.responseData.neighbours) 
+			if (data.responseData.neighbours)
 				MainParser.UpdatePlayerDict(data.responseData.neighbours, 'PlayerList', 'getNeighborList');
-			if (data.responseData.guildMembers) 
+			if (data.responseData.guildMembers)
 				MainParser.UpdatePlayerDict(data.responseData.guildMembers, 'PlayerList', 'getClanMemberList');
-			if (data.responseData.friends) 
+			if (data.responseData.friends)
 				MainParser.UpdatePlayerDict(data.responseData.friends, 'PlayerList', 'getFriendsList');
 		}
 	});
@@ -741,6 +745,7 @@ GetFights = () =>{
 		MainParser.UpdatePlayerDict(data.responseData, 'LGContributions');
 	});
 
+
 	// can be removed after game update 1.332
 	FoEproxy.addHandler('CityMapService', 'updateEntity', (data, postData) => {
 		if (!gbUpdateData || !gbUpdateData.Rankings) {
@@ -751,7 +756,7 @@ GetFights = () =>{
 			gbUpdateData.CityMapEntity = data;
 			lgUpdate();
 		}
-		
+
 		if (data.responseData[0]?.player_id === ExtPlayerID) {
 
 			if ($('#OwnPartBox').length > 0 || $('#CalculatorBox').length > 0) {
@@ -771,7 +776,7 @@ GetFights = () =>{
 			gbUpdateData.CityMapEntity = formattedData;
 			lgUpdate();
 		}
-		
+
 		if (formattedData.responseData[0]?.player_id === ExtPlayerID) {
 			if ($('#OwnPartBox').length > 0 || $('#CalculatorBox').length > 0) {
 				MainParser.CurrentGB.Entity.max_level = formattedData.responseData[0]?.max_level;
@@ -785,6 +790,34 @@ GetFights = () =>{
 			MainParser.CityMapData[b.id]=b;
 		}
 		FoEproxy.triggerFoeHelperHandler('CityMapUpdated');
+
+		// Live update of an own GB that is currently open: contributions of other
+		// players only arrive as this entity push with the new invested FP total —
+		// the game sends no updated rankings and does not re-request them either.
+		const CurrentGB = MainParser.CurrentGB;
+		if (!CurrentGB.Entity || CurrentGB.Entity['player_id'] !== ExtPlayerID) return;
+		if (Parts.IsPreviousLevel) return; // box shows a scrolled level, keep it
+
+		const Update = data.responseData.find(b => b['id'] === CurrentGB.Entity['id'] && b['type'] === 'greatbuilding');
+		if (!Update) return;
+		if (Update['level'] !== CurrentGB.Entity['level']) return; // level jumped, rankings are void until the GB is reopened
+
+		CurrentGB.Entity = { ...Update, player_id: ExtPlayerID };
+
+		// FP not covered by the known rankings are booked as one anonymous patron
+		// entry (rank -1, like a deleted player), that keeps all totals correct
+		// until reopening the GB delivers the real rankings again
+		const Invested = Update['state']?.['invested_forge_points'] || 0;
+		const Known = (CurrentGB.Rankings || []).reduce((acc, r) => acc + (r?.['forge_points'] || 0), 0);
+		if (CurrentGB.Rankings && Invested > Known) {
+			const LiveRow = CurrentGB.Rankings.find(r => r?.['__liveUpdate']);
+			if (LiveRow) LiveRow['forge_points'] += Invested - Known;
+			else CurrentGB.Rankings.push({ forge_points: Invested - Known, rank: -1, __liveUpdate: true });
+		}
+
+		if ($('#OwnPartBox').length > 0 || $('#CalculatorBox').length > 0) {
+			Parts.CalcBody();
+		}
 	});
 
 	FoEproxy.addWsHandler('CityProductionService', 'pickupProduction', data => {
@@ -803,6 +836,7 @@ GetFights = () =>{
 			}
 		}
 	});
+
 
 	// Update Funktion, die ausgeführt wird, sobald beide Informationen in gbUpdateData vorhanden sind.
 	function lgUpdate() {
@@ -878,28 +912,20 @@ GetFights = () =>{
 	//--------------------------------------------------------------------------------------------------
 
 
-	// Greatbuildings: LG Belohnungen von Arche in Events zählen
-	FoEproxy.addHandler('OtherPlayerService', 'getEventsPaginated', (data, postData) => {
-		if (data.responseData['events']) {
-			GreatBuildings.HandleEventPage(data.responseData['events']);
-		}
-	});
-
-
 	FoEproxy.addHandler('TimeService', 'updateTime', async (data, postData) => {
 		GameTime.set(data.responseData.time);
 		if (MainMenuLoaded) return;
 
-	
+
 		MainMenuLoaded = true;
-		await StartUpDone;	
+		await StartUpDone;
 		let MenuSetting = localStorage.getItem('SelectedMenu');
 		MainParser.SelectedMenu = MenuSetting || 'RightBar';
 		_menu.CallSelectedMenu(MainParser.SelectedMenu);
-		
+
 		MainParser.setLanguage();
 
-		Quests.init();	
+		Quests.init();
 	});
 
 
@@ -1034,9 +1060,9 @@ let MainParser = {
 	BuildingSets: null,
 	BuildingChains: null,
 	SelectionKits: null,
-	
+
 	BuildingFamilyLimits: null,
-	
+
 	InnoCDN: 'https://foede.innogamescdn.com/',
 
 	/**
@@ -1605,14 +1631,14 @@ let MainParser = {
 		});
 
 		ExtPlayerAvatar = d.portrait_id;
-		await ExistenceConfirmed('MainParser.CityEntities||srcLinks.FileList||Infoboard||EventHandler');
-	
+		await ExistenceConfirmed(() => MainParser.CityEntities != null && srcLinks.FileList != null && Infoboard != null && EventHandler != null);
+
 		Infoboard.Init();
 		EventHandler.Init();
 		setTimeout(MainParser.forceLoadCityEntities, 15000);
-	
+
 		window.dispatchEvent(new CustomEvent('foe-helper#StartUpDone'))
-		
+
 		// remove campagnemap storage - can be removed again at some point
 		localStorage.removeItem('AllProvinces');
 	},
@@ -1726,8 +1752,12 @@ let MainParser = {
 	SetArkBonus2: () => {
 		let ArkBonus = 0;
 
-		for (let i of Object.values(MainParser.CityMapData).filter(x => x?.bonus?.type === "contribution_boost")) {
-			ArkBonus += i.bonus.value;
+		for (let i of Object.values(MainParser.CityMapData)) {
+			// classic single `bonus` field or non-empty `bonuses` array of the multi-tier rework;
+			// a single value-less entry must not turn the sum into NaN (updateArkBonus drops NaN silently)
+			for (const bonus of (i?.bonuses?.length ? i.bonuses : (i?.bonus ? [i.bonus] : []))) {
+				if (bonus?.type === "contribution_boost") ArkBonus += (parseFloat(bonus.value) || 0);
+			}
 		}
 
 		MainParser.updateArkBonus(ArkBonus,"City Map");
@@ -1944,7 +1974,7 @@ let MainParser = {
 			let ID = Buildings[i]['id'];
 			if (MainParser.CityMapData[ID]) {
 				MainParser.CityMapData[ID] = Buildings[i];
-			} 
+			}
 			if (ActiveMap === "era_outpost") {
 				CityMap.EraOutpost.data[ID] = Buildings[i];
 			}
@@ -2154,8 +2184,10 @@ let MainParser = {
 		check: () => {
 			//get list of buildings for which an alert is already set
 			let LB = JSON.parse(localStorage.getItem("LimitedBuildingsAlertSet")||'{}')
-			//get list of expired limited buildings in city
-			let list = Object.values(MainParser.CityMapData).filter(value => !!value.decayedFromCityEntityId).map(value => value.id);
+			//get list of expired limited buildings in city; a re-ascended building keeps a stale
+			//decayedFromCityEntityId, so skip buildings whose current version is itself time limited
+			let list = Object.values(MainParser.CityMapData).filter(value => !!value.decayedFromCityEntityId
+				&& !MainParser.CityEntities[value.cityentity_id]?.components?.AllAge?.limited?.config?.expireTime).map(value => value.id);
 			//remove buildings that were already tracked and that should have just triggered an alert
 			for (let i = list.length-1;i>=0;i--) {
 				if (LB[list[i]] || MainParser.Inactives.ignore.includes(MainParser.CityMapData[list[i]].cityentity_id)) {
@@ -2163,7 +2195,7 @@ let MainParser = {
 				}
 			}
 			MainParser.Inactives.list = [...new Set(list.map(x=>MainParser.CityMapData[x].cityentity_id))];
-			
+
 			//remove tracked buildings if time ran out
 			for (let x in LB) {
 				if (!LB[x]) continue;
@@ -2173,7 +2205,7 @@ let MainParser = {
 			if(!Settings.GetSetting('ShowBuildingsExpired')){
 				return;
 			}
-			//create instant alert for currently expired buildings		
+			//create instant alert for currently expired buildings
 			if (list.length > 0) {
 					const data = {
 					title: i18n("InactiveBuildingsAlert.title"),
@@ -2186,7 +2218,7 @@ let MainParser = {
 					vibrate: false,
 					actions: [{title:"OK"}]
 				};
-		
+
 				MainParser.sendExtMessage({
 					type: 'alerts',
 					playerId: ExtPlayerID,
@@ -2197,11 +2229,17 @@ let MainParser = {
 			let buildings = Object.values(MainParser.CityMapData)
 			for (let building of buildings) {
 				// set alerts for limited buildings that will run out in the future and that have no alert yet
-				if (!LB[building.id] && MainParser.CityEntities[building.cityentity_id]?.components?.AllAge?.limited?.config?.expireTime) {
+				const limitedConfig = MainParser.CityEntities[building.cityentity_id]?.components?.AllAge?.limited?.config;
+				if (!LB[building.id] && limitedConfig?.expireTime) {
+					// the game delivers the decay timestamp directly (state.decaysAt);
+					// constructionFinishedAt is only a fallback as it is often missing
+					const expireAt = building.state?.decaysAt
+						|| (building.state?.constructionFinishedAt ? building.state.constructionFinishedAt + limitedConfig.expireTime : null);
+					if (!expireAt) continue;
 					const data = {
 						title: i18n("InactiveBuildingsAlert.title"),
-						body: MainParser.CityEntities[MainParser.CityEntities[building.cityentity_id]?.components?.AllAge?.limited?.config?.targetCityEntityId].name,
-						expires: (MainParser.CityEntities[building.cityentity_id]?.components?.AllAge?.limited?.config?.expireTime + building.state.constructionFinishedAt - GameTime.Offset)*1000,
+						body: MainParser.CityEntities[limitedConfig.targetCityEntityId].name,
+						expires: (expireAt - GameTime.Offset)*1000,
 						repeat: -1,
 						persistent: true,
 						tag: '',
@@ -2209,14 +2247,14 @@ let MainParser = {
 						vibrate: false,
 						actions: [{title:"OK"}]
 					};
-			
+
 					MainParser.sendExtMessage({
 						type: 'alerts',
 						playerId: ExtPlayerID,
 						action: 'create',
 						data: data,
 					}).then((aId) => {
-						LB[building.id]=(MainParser.CityEntities[building.cityentity_id]?.components?.AllAge?.limited?.config?.expireTime + building.state.constructionFinishedAt - GameTime.Offset)*1000;
+						LB[building.id]=(expireAt - GameTime.Offset)*1000;
 						localStorage.setItem("LimitedBuildingsAlertSet",JSON.stringify(LB));
 					})
 				}
@@ -2235,13 +2273,13 @@ let MainParser = {
 					minimize: true,
 					resize: true,
 				});
-	
+
 				//HTML.AddCssFile('auctions');
 			}
 			MainParser.Inactives.updateSettings();
 		},
 
-		updateSettings:()=>{ 
+		updateSettings:()=>{
 			let t=[];
 			//t.push(`<h2>${i18n('Boxes.InactivesSettings.Ignored')}</h2>`);
 			t.push(`<h2>${i18n('Boxes.InactivesSettings.Toggle')}</h2>`);
@@ -2249,14 +2287,14 @@ let MainParser = {
 				t.push(`<span class="inactivesIgnoreToggle" data-id="${id}" title="${i18n('Boxes.InactivesSettings.NoAlert')}">🤐${MainParser.CityEntities[id].name}</span></br>`);
 			}
 			//t.push(`<h2>${i18n('Boxes.InactivesSettings.ClickToIgnore')}</h2>`);
-			
+
 			for (let id of MainParser.Inactives.list) {
 				t.push(`<span class="inactivesIgnoreToggle" data-id="${id}" title="${i18n('Boxes.InactivesSettings.AlertActive')}">⚠️${MainParser.CityEntities[id].name}</span></br>`);
 			}
-			
-			
+
+
 			$('#inactivesSettingsBoxBody').html(t.join(''));
-			
+
 			$('.inactivesIgnoreToggle').on("click", (e) => {
 				let id = e.target.dataset.id;
 				let i = MainParser.Inactives.ignore.findIndex(x => x==id);

@@ -646,7 +646,7 @@ let Alerts = function(){
 
 						$('#AlertsBody').find('span.button-alert-create-all-sectors').on('click', function(){
 							let reset = confirm(i18n('Boxes.Alerts.Form.ConfirmSectorAlerts'))
-							if (reset) 
+							if (reset)
 								tmp.web.forms.actions.createSectors().then(function(){});
 						});
 
@@ -788,12 +788,12 @@ let Alerts = function(){
 							// for numeric values
 							else if ( Number.isInteger( entry.value ) ){
 								html += `<p class="text-center">
-							<input class="setting-input text-center" type="number" name="alert-${key}" data-key="${key}" value="${entry.value}">                                        
+							<input class="setting-input text-center" type="number" name="alert-${key}" data-key="${key}" value="${entry.value}">
 						</p>`;
 							}
 							else {
 								html += `<p class="text-center">
-							<input class="setting-input text-center" type="text" name="alert-${key}" data-key="${key}" value="${entry.value}">                                        
+							<input class="setting-input text-center" type="text" name="alert-${key}" data-key="${key}" value="${entry.value}">
 						</p>`;
 							}
 
@@ -938,7 +938,8 @@ let Alerts = function(){
 
 						if ( tmp.model.battlegrounds.provinces ) {
 							tmp.model.battlegrounds.provinces.forEach( function ( province, id ) {
-								let expires = ( province['lockedUntil'] - tmp.preferences.data.early.value ) * 1000;
+								// lockedUntil is server time, alerts are scheduled against the local clock
+								let expires = ( province['lockedUntil'] - tmp.preferences.data.early.value - GameTime.Offset ) * 1000;
 								if ( ! isNaN( expires ) ) {
 									let alert = {
 										id: null,
@@ -1243,7 +1244,8 @@ let Alerts = function(){
 					let battlegroundOptions = '';
 					if ( tmp.model.battlegrounds.provinces ) {
 						tmp.model.battlegrounds.provinces.forEach( function ( province, id ) {
-							let value = ( province['lockedUntil'] - tmp.preferences.data.early.value ) * 1000;
+							// lockedUntil is server time, the datetime field expects local clock time
+							let value = ( province['lockedUntil'] - tmp.preferences.data.early.value - GameTime.Offset ) * 1000;
 							// if the sector is currently taken
 							if ( ! isNaN( value ) ) {
 								let text = `${province.title} (${province.owner})`;
@@ -1275,8 +1277,8 @@ let Alerts = function(){
 					<label for="alert-datetime">${labels.datetime}</label>
 					<input type="datetime-local" id="alert-datetime" name="alert-datetime" value="${expires}" step="1">
 					<span id="alert-expires"></span>
-				
-					<div class="btn-group" role="group" aria-label="Date Group">						
+
+					<div class="btn-group" role="group" aria-label="Date Group">
 						<span class="btn datetime-preset" data-time="-60">-${labels.times['1m']}</span>
 						<span class="btn datetime-preset" data-time="60">${labels.times['1m']}</span>
 						<span class="btn datetime-preset" data-time="300">${labels.times['5m']}</span>
@@ -1308,13 +1310,13 @@ let Alerts = function(){
 						</optgroup>
 					</select>
 				</div>
-				
+
 				<p class="full-width radio-toolbar extra-vs-8">
 					${labels.repeats.repeat}
 					<input id="alert-repeat-never" type="radio" name="alert-repeat" value="-1"${repeats['-1']}>
 					<label for="alert-repeat-never" class="btn">${labels.repeats.never}</label>
 					${labels.repeats.every}
-					<span class="btn-group" role="group" aria-label="Date Group">	
+					<span class="btn-group" role="group" aria-label="Date Group">
 						<label for="alert-repeat-5m" class="btn">${labels.times['5m']}</label>
 						<input id="alert-repeat-5m" type="radio" name="alert-repeat" class="hidden" value="300"${repeats['300']}>
 						<input id="alert-repeat-15m" type="radio" name="alert-repeat" class="hidden" value="900"${repeats['900']}>
@@ -1335,7 +1337,7 @@ let Alerts = function(){
 						<label for="alert-repeat-7d" class="btn">${labels.times['7d']}</label>
 					</span>
 				</p>
-				
+
 				<p class="full-width radio-toolbar">
 					${labels.persist.persistence}
 					<span class="btn-group">
@@ -1346,7 +1348,7 @@ let Alerts = function(){
 					</span>
 					<br><small>${labels.persist.description}</small>
 				</p>
-				
+
 				<!--
 				<p class="full-width">
 					<label for="tag">${labels.tags.header}</label>
@@ -1354,7 +1356,7 @@ let Alerts = function(){
 					<small>${labels.tags.description}</small>
 				</p>
 				-->
-				
+
 				<!-- left column -->
 				<p>
 					${buttonsLeft}
@@ -1362,7 +1364,7 @@ let Alerts = function(){
 				<p class="text-right">
 					${buttonsRight}
 				 </p>
-	
+
 			</form>`;
 				}
 			},
@@ -1547,7 +1549,7 @@ let Alerts = function(){
 					HTML.Box( {
 						id: 'Alerts',
 						title: i18n( 'Boxes.Alerts.Title', 'Alerts' ),
-                		ask: i18n('Boxes.Alerts.HelpLink'),
+						ask: i18n('Boxes.Alerts.HelpLink'),
 						auto_close: true,
 						dragdrop: true,
 						minimize: true,
@@ -1622,18 +1624,19 @@ let Alerts = function(){
 					if ( responseData && responseData.forEach ){
 						responseData.forEach( function( item, index ){
 
+							// item.time is server time, the datetime field expects local clock time
 							if ( item && item.type ){
 								switch (item.type) {
 									case 'antiquesExchange' : {
-										tmp.model.antique.exchange = ( item.time - tmp.preferences.data.early.value ) * 1000;
+										tmp.model.antique.exchange = ( item.time - tmp.preferences.data.early.value - GameTime.Offset ) * 1000;
 										break;
 									}
 									case 'antiquesAuction' : {
-										tmp.model.antique.auction = ( item.time - tmp.preferences.data.early.value )  * 1000;
+										tmp.model.antique.auction = ( item.time - tmp.preferences.data.early.value - GameTime.Offset )  * 1000;
 										break;
 									}
 									case 'antiquesAuctionCooldown' : {
-										tmp.model.antique.cooldown = ( item.time - tmp.preferences.data.early.value )  * 1000;
+										tmp.model.antique.cooldown = ( item.time - tmp.preferences.data.early.value - GameTime.Offset )  * 1000;
 										break;
 									}
 									case 'battlegroundsAttrition' : {

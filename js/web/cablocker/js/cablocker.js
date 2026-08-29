@@ -29,10 +29,10 @@ CABlocker = {
         if (!Settings.GetSetting('BlockCollectAll')) return;
         if (CABlocker.checkBlock) return;
         CABlocker.checkBlock = true;
-        
+
         setTimeout(async () => {
             CABlocker.checkBlock = false;
-            await ExistenceConfirmed('MainParser.CityMapData||MainParser.CityEntities');
+            await ExistenceConfirmed(() => MainParser.CityMapData != null && MainParser.CityEntities != null);
             CABlocker.setTimer();
             let now = GameTime.get();
             let finishedProductions = Object.values(MainParser.CityMapData).filter(x => x.state && x.state.productionOption && (!x.state.next_state_transition_at || x.state.next_state_transition_at < now) && !x.state.pausedAt)
@@ -50,22 +50,22 @@ CABlocker = {
                     }
                 }
             }
-        }, 1000);    
+        }, 1000);
     },
     setTimer: () =>{
         clearTimeout(CABlocker.timer);
         let now = GameTime.get();
         let ongoingProductions = Object.values(MainParser.CityMapData).filter(x => x.state && x.state.productionOption && x.state.next_state_transition_at > now && !x.state.pausedAt)
         let nextFinish = Math.min(...ongoingProductions.map(x => new Date(x.state.next_state_transition_at)));
-        
+
         if (!nextFinish || nextFinish == Infinity) return;
 
         setTimeout(() => {
-            CABlocker.checkBuildings();            
+            CABlocker.checkBuildings();
         }, (nextFinish - now + 1)*1000);
     },
     checkFP: async () => {
-        await ExistenceConfirmed('MainParser.Quests');
+        await ExistenceConfirmed(() => MainParser.Quests != null);
         if ((ResourceStock.strategy_points||0) <= (GoodsData?.strategy_points?.abilities?.collectingRestricted?.maxAmount||99)) return false;
         CABlocker.addBlocker();
         return true;

@@ -48,7 +48,7 @@ let Outposts = {
 				minimize: true,
 				resize: true,
 			    active_maps:"cultural_outpost"
-				// popout: 'Outposts.PopOutBox()'
+				// popout: () => Outposts.PopOutBox()
 			};
 
 			HTML.Box(args);
@@ -338,7 +338,7 @@ let Outposts = {
             }
 			else{
 				t.push('<td>' + advancement.name + '</td>');
-			}			
+			}
 
 			// X oder Haken
 			t.push('<td class="text-center">' + (unlocked ? '&#10004;' : '&#10060;') + '</td>');
@@ -525,7 +525,7 @@ let Outposts = {
 				difference2 = (resourceID !== goodProductionResourceId) ? Math.floor((difference)/(1 + 3*currentRun.productionBonusProbability)) : currStock[resourceID] - Math.floor((sums[resourceID])/(1 + 3*currentRun.productionBonusProbability));
 			}
 			t.push('<td class="text-center text-' + (difference < 0 ? 'danger' : 'success') + ((resourceID !== 'diplomacy' && difference < 0 && difference2 != null) ? '" title="' + HTML.Format(difference2) + " " + i18n('Boxes.Outpost.including4x'): '') + '">' + HTML.Format(difference) + '</td>');
-			
+
 		}
 
 		t.push('</tr>');
@@ -750,6 +750,7 @@ let Outposts = {
 								<link rel="stylesheet" href="${extUrl}css/web/variables.css">
 								<link rel="stylesheet" href="${extUrl}css/web/boxes.css">
 								<link rel="stylesheet" href="${extUrl}css/web/goods.css">
+								<style id="goods-sprite-css">${localStorage.getItem('GoodsSpriteCSS') || ''}</style>
 								<link rel="stylesheet" href="${extUrl}js/web/outposts/css/outposts.css">
 							</head>
 							<body class="popup-body" id="outpostConsumablesBody">${content}</body>

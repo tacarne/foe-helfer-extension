@@ -50,6 +50,33 @@
 	width: 100px;
 	cursor: pointer;
 }
+.optimized-city-controls .control-toggle {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	margin-left: 8px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.optimized-city-controls .control-toggle input[type="checkbox"] {
+	cursor: pointer;
+	margin: 0;
+}
+.optimized-city-controls .recalc-btn {
+	margin-left: 8px;
+	white-space: nowrap;
+}
+.optimized-city-controls .variant-control {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-right: 8px;
+	white-space: nowrap;
+}
+.optimized-city-controls .variant-control .btn {
+	padding: 0 7px;
+	line-height: 1.4;
+}
 .scale-value {
 	min-width: 25px;
 	display: inline-block;
@@ -111,101 +138,9 @@
 .map-grid-canvas:active {
 	cursor: grabbing;
 }
-.map-grid-tooltips {
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 100%;
-	height: 100%;
-	pointer-events: none;
-}
-.map-grid-tooltips .map-building {
-	position: absolute;
-	pointer-events: all;
-}
-.map-building {
-	border: 1px solid;
-}
-
-.map-building.residential {
-	background-color: var(--background-color-residential);
-	border-color: var(--border-color-residential);
-}
-.map-building.production {
-	background-color: var(--background-color-production);
-	border-color: var(--border-color-production);
-}
-.map-building.greatbuilding {
-	background-color: var(--background-color-greatbuilding);
-	border-color: var(--border-color-greatbuilding);
-}
-.map-building.main_building {
-	background-color: var(--background-color-main_building);
-	border-color: var(--border-color-main_building);
-}
-.map-building.military {
-	background-color: var(--background-color-military);
-	border-color: var(--border-color-military);
-}
-.map-building.goods {
-	background-color: var(--background-color-goods);
-	border-color: var(--border-color-goods);
-}
-.map-building.culture {
-	background-color: var(--background-color-culture);
-	border-color: var(--border-color-culture);
-}
-.map-building.decoration {
-	background-color: var(--background-color-decoration);
-	border-color: var(--border-color-decoration);
-}
-.map-building.street {
-	background-color: var(--background-color-street);
-	border-color: var(--border-color-street);
-}
-.map-building.random_production {
-	background-color: var(--background-color-random_production);
-	border-color: var(--border-color-random_production);
-}
-.map-building.tower {
-	background-color: var(--background-color-tower);
-	border-color: var(--border-color-tower);
-}
-.map-building.roadless {
-	background-color: var(--background-color-noStreet);
-	border-color: var(--border-color-noStreet);
-}
-.map-building:hover {
-	background-color: rgba(255, 255, 255, 0.2);
-	opacity: 0.5 !important;
-	outline: 2px solid #ffffff;
-	box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
-	z-index: 100;
-}
-
-/* Fallback für Gebäude ohne spezifischen Typ (generic_building) */
-.map-building.generic_building {
-	background-color: #A0A0A0; /* Mittelgrau */
-	border-color: #404040;
-}
-
-/* WICHTIG: Straßen sichtbar machen! (Sonst sind die Wege transparent) */
-.map-building.street {
-	background-color: #333333; /* Dunkelgrau für Asphalt */
-	border-color: #111111;
-	z-index: 1; /* Straßen liegen ganz unten */
-}
-
-/* Lila Deko (Deko ohne Straßenanschluss) */
-.map-building.roadless {
-	background-color: #8A2BE2;
-	border-color: #4B0082;
-	opacity: 0.8;
-}
-
-/* Optional: Fallback, falls CSS-Variablen mal nicht laden */
-.map-building {
-	box-sizing: border-box;
+/* remove mode: buildings on the canvas are click targets */
+.map-grid-canvas.edit-mode {
+	cursor: pointer;
 }
 
 /* Pop-up window: regular filled layout instead of the in-game city overlay */
@@ -226,4 +161,88 @@ body.foe-helper-popup #CityBuilderBox .window-body {
 /* origin 0 0 keeps the centering math in CityBuilder.fitPopout() simple */
 body.foe-helper-popup #CityBuilderBox .map-grid-wrapper {
 	transform-origin: 0 0;
+}
+/* box listing the buildings the optimizer could not fit into the layout */
+#CityBuilderUnplacedBox {
+	width: 320px;
+}
+#CityBuilderUnplacedBox .unplaced-hint {
+	padding: 6px 8px;
+	font-style: italic;
+}
+#CityBuilderUnplacedBox .unplaced-table td {
+	padding: 3px 8px;
+}
+#CityBuilderUnplacedBox .removed-restore {
+	cursor: pointer;
+	font-size: 15px;
+	font-weight: bold;
+	color: #8be28b;
+}
+#CityBuilderUnplacedBox .removed-restore:hover {
+	color: #ffffff;
+}
+
+/* pop-up window: the opacity overlay slider is pointless there */
+body.foe-helper-popup #CityBuilderBox .opacity-control {
+	display: none;
+}
+body.foe-helper-popup #CityBuilderBox .map-grid-wrapper {
+	opacity: 1 !important;
+}
+
+/* loading panel: solid background so it stays readable on top of the live city */
+.city-builder-loading {
+	margin: 40px auto;
+	max-width: 340px;
+	padding: 24px;
+	background: rgba(15, 18, 24, 0.92);
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	border-radius: 8px;
+	text-align: center;
+	color: #fff;
+}
+.city-builder-loading .loading-title {
+	font-size: 14px;
+	margin-bottom: 14px;
+}
+.city-builder-loading .loading-bar {
+	height: 14px;
+	background: rgba(255, 255, 255, 0.15);
+	border-radius: 7px;
+	overflow: hidden;
+}
+.city-builder-loading .loading-bar-fill {
+	height: 100%;
+	width: 0;
+	background: linear-gradient(90deg, #f6b640, #ffd97a);
+	border-radius: 7px;
+	transition: width 0.3s linear;
+}
+.city-builder-loading .calc-progress {
+	margin-top: 8px;
+	font-size: 13px;
+	color: #ffd97a;
+}
+
+/* road balance panel top-left: live city vs planned layout */
+.city-builder-stats {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	z-index: 10;
+	background-color: #070b18b5;
+	padding: 4px 10px;
+	border-radius: 4px;
+	border: 1px solid var(--black-65);
+	color: #fff;
+	font-size: 12px;
+	line-height: 1.6;
+	pointer-events: none;
+}
+.city-builder-stats .saving {
+	color: #8be28b;
+}
+.city-builder-stats .extra {
+	color: #ff8d8d;
 }

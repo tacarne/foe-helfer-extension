@@ -26,11 +26,16 @@ FoEproxy.addHandler('ResearchService', 'getProgress', (data, postData) => {
 	Technologies.UnlockedTechnologies = data.responseData;
 });
 
+// pick up eras the game client already knows but the extension does not yet
+FoEproxy.addHandler('StartupService', 'getData', (data, postData) => {
+	Technologies.DetectGameEras();
+});
+
 FoEproxy.addHandler('ResearchService', 'payTechnology', (data, postData) => {
 	let era = data.responseData.technology.era;
 
     if (Technologies.Eras[era] > CurrentEraID) {
-        CurrentEraID = Technologies.EraNames[era];
+        CurrentEraID = Technologies.Eras[era];
         CurrentEra = era;
     }
 });
@@ -41,6 +46,9 @@ FoEproxy.addHandler('ResearchService', 'spendForgePoints', (data, postData) => {
 
     let ID = CurrentTech['id']
     if (ID === undefined) return;
+
+    if (!Technologies.UnlockedTechnologies) Technologies.UnlockedTechnologies = {};
+    if (!Array.isArray(Technologies.UnlockedTechnologies.inProgressTechnologies)) Technologies.UnlockedTechnologies.inProgressTechnologies = [];
 
     let TechFound = false;
     for (let i in Technologies.UnlockedTechnologies.inProgressTechnologies) {
@@ -72,6 +80,7 @@ FoEproxy.addHandler('ResearchService', 'payTechnology', (data, postData) => {
     if (ID === undefined) return;
 
     // Inno verwaltet die erforschten Technologien jetzt in 'unlockedNodes' (vorher 'unlockedTechnologies').
+    if (!Technologies.UnlockedTechnologies) Technologies.UnlockedTechnologies = {};
     if (!Array.isArray(Technologies.UnlockedTechnologies.unlockedNodes)) Technologies.UnlockedTechnologies.unlockedNodes = [];
     Technologies.UnlockedTechnologies.unlockedNodes.push(ID);
 
@@ -88,117 +97,44 @@ let Technologies = {
     IgnorePrevEra: null,
     IgnoreCurrentEraOptional: null,
 
-    Eras: {
-        AllAge: 0,
-        NoAge: 0,
-        StoneAge: 1,
-        BronzeAge: 2,
-        IronAge: 3,
-        EarlyMiddleAge: 4,
-        HighMiddleAge: 5,
-        LateMiddleAge: 6,
-        ColonialAge: 7,
-        IndustrialAge: 8,
-        ProgressiveEra: 9,
-        ModernEra: 10,
-        PostModernEra: 11,
-        ContemporaryEra: 12,
-        TomorrowEra: 13,
-        FutureEra: 14,
-        ArcticFuture: 15,
-        OceanicFuture: 16,
-        VirtualFuture: 17,
-        SpaceAgeMars: 18,
-        SpaceAgeAsteroidBelt: 19,
-        SpaceAgeVenus: 20,
-        SpaceAgeJupiterMoon: 21,
-        SpaceAgeTitan: 22,
-        SpaceAgeSpaceHub: 23,
-        NextEra: 24,
-    },
+    /** @type {boolean} group the resource table by era with sorting inside each group */
+    GroupByEra: false,
 
-    // need this for identities
-    InnoEras: {
-        StoneAge: 0,
-        BronzeAge: 1,
-        IronAge: 2,
-        EarlyMiddleAge: 3,
-        HighMiddleAge: 4,
-        LateMiddleAge: 5,
-        ColonialAge: 6,
-        IndustrialAge: 7,
-        ProgressiveEra: 8,
-        ModernEra: 9,
-        PostModernEra: 10,
-        ContemporaryEra: 11,
-        TomorrowEra: 12,
-        FutureEra: 13,
-        ArcticFuture: 14,
-        OceanicFuture: 15,
-        VirtualFuture: 16,
-        SpaceAgeMars: 17,
-        SpaceAgeAsteroidBelt: 18,
-        SpaceAgeVenus: 19,
-        SpaceAgeJupiterMoon: 20,
-        SpaceAgeTitan: 21,
-        SpaceAgeSpaceHub: 22,
-        NextEra: 23,
-    },
+    /** @type {?number} sorted column index in grouped mode, null = default order */
+    SortColumn: null,
 
+    /** @type {number} sort direction in grouped mode: 1 ascending, -1 descending */
+    SortDirection: 1,
 
-    EraNames: {
-        0: 'NoAge',
-        1: 'StoneAge',
-        2: 'BronzeAge',
-        3: 'IronAge',
-        4: 'EarlyMiddleAge',
-        5: 'HighMiddleAge',
-        6: 'LateMiddleAge',
-        7: 'ColonialAge',
-        8: 'IndustrialAge',
-        9: 'ProgressiveEra',
-        10: 'ModernEra',
-        11: 'PostModernEra',
-        12: 'ContemporaryEra',
-        13: 'TomorrowEra',
-        14: 'FutureEra',
-        15: 'ArcticFuture',
-        16: 'OceanicFuture',
-        17: 'VirtualFuture',
-        18: 'SpaceAgeMars',
-        19: 'SpaceAgeAsteroidBelt',
-        20: 'SpaceAgeVenus',
-        21: 'SpaceAgeJupiterMoon',
-        22: 'SpaceAgeTitan',
-        23: 'SpaceAgeSpaceHub'
-    },
+    /**
+     * Ordered list of playable era ids, oldest first. Mirrors the game
+     * client's EraConstants.ERA_IDS and acts as the single source for all
+     * era lookup maps. DetectGameEras() extends it at runtime with eras the
+     * game client knows but this list does not yet.
+     * @type {string[]}
+     */
+    EraList: [
+        'StoneAge', 'BronzeAge', 'IronAge', 'EarlyMiddleAge', 'HighMiddleAge',
+        'LateMiddleAge', 'ColonialAge', 'IndustrialAge', 'ProgressiveEra',
+        'ModernEra', 'PostModernEra', 'ContemporaryEra', 'TomorrowEra',
+        'FutureEra', 'ArcticFuture', 'OceanicFuture', 'VirtualFuture',
+        'SpaceAgeMars', 'SpaceAgeAsteroidBelt', 'SpaceAgeVenus',
+        'SpaceAgeJupiterMoon', 'SpaceAgeTitan', 'SpaceAgeSpaceHub',
+        'StellarAgeDiscovery'
+    ],
 
-    // need this for cityentities
-    InnoEraNames: {
-        0: 'StoneAge',
-        1: 'BronzeAge',
-        2: 'IronAge',
-        3: 'EarlyMiddleAge',
-        4: 'HighMiddleAge',
-        5: 'LateMiddleAge',
-        6: 'ColonialAge',
-        7: 'IndustrialAge',
-        8: 'ProgressiveEra',
-        9: 'ModernEra',
-        10: 'PostModernEra',
-        11: 'ContemporaryEra',
-        12: 'TomorrowEra',
-        13: 'FutureEra',
-        14: 'ArcticFuture',
-        15: 'OceanicFuture',
-        16: 'VirtualFuture',
-        17: 'SpaceAgeMars',
-        18: 'SpaceAgeAsteroidBelt',
-        19: 'SpaceAgeVenus',
-        20: 'SpaceAgeJupiterMoon',
-        21: 'SpaceAgeTitan',
-        22: 'SpaceAgeSpaceHub'
-    },
+    /** @type {Object<string,number>} Era name -> era id (NoAge/AllAge = 0), built from EraList */
+    Eras: null,
+
+    /** @type {Object<string,number>} Era name -> Inno era id (StoneAge = 0), need this for identities */
+    InnoEras: null,
+
+    /** @type {Object<number,string>} Era id -> era name */
+    EraNames: null,
+
+    /** @type {Object<number,string>} Inno era id -> era name, need this for cityentities */
+    InnoEraNames: null,
+
     maxEra:null,
 
 
@@ -215,6 +151,126 @@ let Technologies = {
             Technologies.maxEra = Math.max(...Object.values(MainParser.CityEntities).filter(x => x.type === "greatbuilding").map(x => Technologies.Eras[x.requirements.min_era]));
         }
         return Technologies.maxEra;
+    },
+
+
+    /**
+     * (Re)builds the four era lookup maps (Eras, InnoEras, EraNames,
+     * InnoEraNames) from the ordered EraList.
+     */
+    BuildEraMaps: () => {
+        const eras = { AllAge: 0, NoAge: 0 },
+            innoEras = {},
+            eraNames = { 0: 'NoAge' },
+            innoEraNames = {};
+
+        Technologies.EraList.forEach((name, i) => {
+            eras[name] = i + 1;
+            innoEras[name] = i;
+            eraNames[i + 1] = name;
+            innoEraNames[i] = name;
+        });
+
+        eras.NextEra = Technologies.EraList.length + 1;
+        innoEras.NextEra = Technologies.EraList.length;
+
+        Technologies.Eras = eras;
+        Technologies.InnoEras = innoEras;
+        Technologies.EraNames = eraNames;
+        Technologies.InnoEraNames = innoEraNames;
+    },
+
+
+    /**
+     * Reads the era constants straight from the game client so new eras work
+     * without an extension update: fetches the ForgeHX client script (served
+     * from the browser cache, parsed once per client version) and extracts
+     * the ordered era id list plus the gettext key and short code of every
+     * era name. Newly discovered eras are appended to EraList, the lookup
+     * maps are rebuilt and i18n fallbacks are registered.
+     */
+    DetectGameEras: async (retries = 60) => {
+        try {
+            if (!i18n_loaded) { // translations must be loaded before missing era names can be detected
+                if (retries > 0) setTimeout(() => Technologies.DetectGameEras(retries - 1), 1000);
+                return;
+            }
+
+            const src = [...document.scripts].map(s => s.src).find(s => /ForgeHX.*\.js/.test(s));
+            if (!src) return;
+
+            let cache = JSON.parse(localStorage.getItem('TechnologiesGameEras') || 'null');
+
+            if (!cache || cache.src !== src) {
+                const js = await fetch(src).then(r => r.text());
+
+                // EraConstants.ERA_IDS, e.g. ERA_IDS="StoneAge BronzeAge ... SpaceAgeSpaceHub StellarAgeDiscovery"
+                const idsMatch = js.match(/\bERA_IDS="([A-Za-z ]+)"/);
+                if (!idsMatch) return;
+
+                // EraNames lookup entries, e.g. new xl(t.gettext("STEL|Stellar Age Discovery"),"stel",23);a.h.StellarAgeDiscovery=b
+                const names = {};
+                for (const m of js.matchAll(/new [\w$]+\([\w$]+\.gettext\("([^"]+)"\),\s*"([a-z]+)",\d+\);[\w$]+\.h\.(\w+)=/g)) {
+                    names[m[3]] = { key: m[1], code: m[2] };
+                }
+
+                cache = { src: src, eraIds: idsMatch[1].split(' '), names: names };
+                localStorage.setItem('TechnologiesGameEras', JSON.stringify(cache));
+            }
+
+            // accept the game's list only if it extends the known one (placeholder eras excluded)
+            const gameList = cache.eraIds.filter(id => id !== 'TheUnknownEra');
+            if (!Technologies.EraList.every((id, i) => gameList[i] === id)) return;
+
+            if (gameList.length > Technologies.EraList.length) {
+                Technologies.EraList = gameList;
+                Technologies.BuildEraMaps();
+
+                // StartUp resolves CurrentEraID synchronously and may have run before the
+                // maps knew this era (async detection) — refresh it from the extended maps
+                if (typeof CurrentEra === 'string' && Technologies.Eras[CurrentEra] !== undefined) {
+                    CurrentEraID = Technologies.Eras[CurrentEra];
+                }
+            }
+
+            Technologies.AddEraTranslations(cache.names || {});
+        }
+        catch (err) {
+            console.warn('DetectGameEras failed:', err);
+        }
+    },
+
+
+    /**
+     * Registers i18n fallbacks (full and short era name) for eras the
+     * extension's language files do not cover yet. Full names are resolved
+     * through the game's own translation catalog (window.gettextCatalog),
+     * so they appear in the game language.
+     * @param {Object<string,{key:string,code:string}>} names Era name data extracted from the client script
+     */
+    AddEraTranslations: (names) => {
+        const catalog = window.gettextCatalog?.strings,
+            strings = catalog?.h || catalog || {},
+            values = {};
+
+        for (const [eraName, data] of Object.entries(names)) {
+            const eraId = Technologies.Eras[eraName];
+            if (eraId === undefined) continue;
+
+            if (i18n('Eras.' + eraId) === 'Eras.' + eraId) {
+                let translated = strings[data.key];
+                translated = (Array.isArray(translated) ? translated[0] : translated) || data.key;
+                values['Eras.' + eraId] = String(translated).split('|').pop(); // cut off gettext context prefix
+            }
+
+            if (i18n('Eras.' + eraId + '.short') === 'Eras.' + eraId + '.short') {
+                values['Eras.' + eraId + '.short'] = data.code.toUpperCase();
+            }
+        }
+
+        if (Object.keys(values).length > 0) {
+            i18n.translator.add({ values: values });
+        }
     },
 
 
@@ -310,7 +366,7 @@ let Technologies = {
 				dragdrop: true,
 				minimize: true,
                 resize: true,
-                settings: 'Technologies.ShowSettingsButton()'
+                settings: () => Technologies.ShowSettingsButton()
 			});
 
 			// CSS in den DOM prügeln
@@ -336,6 +392,25 @@ let Technologies = {
                 Technologies.IgnoreCurrentEraOptional = $this.prop('checked');
 
                 localStorage.setItem('TechnologiesIgnoreCurrentEraOptional', Technologies.IgnoreCurrentEraOptional);
+
+                Technologies.CalcBody();
+            });
+
+            $technologiesBox.on('click', '.groupbyera', function () {
+                Technologies.GroupByEra = $(this).prop('checked');
+
+                localStorage.setItem('TechnologiesGroupByEra', Technologies.GroupByEra);
+
+                Technologies.CalcBody();
+            });
+
+            // grouped mode: own sort handling, era blocks stay intact and are sorted internally
+            $technologiesBox.on('click', '.technologies-grouped .sorter-header th', function () {
+                let column = $(this).index();
+                if ($(this).hasClass('no-sort')) return;
+
+                Technologies.SortDirection = (Technologies.SortColumn === column ? -Technologies.SortDirection : 1);
+                Technologies.SortColumn = column;
 
                 Technologies.CalcBody();
             });
@@ -382,6 +457,7 @@ let Technologies = {
         // real booleans — the string 'false' would be truthy in the checks below
         Technologies.IgnorePrevEra = localStorage.getItem('TechnologiesIgnorePrevEra') !== 'false'
         Technologies.IgnoreCurrentEraOptional = localStorage.getItem('TechnologiesIgnoreCurrentEraOptional') !== 'false'
+        Technologies.GroupByEra = localStorage.getItem('TechnologiesGroupByEra') === 'true'
 
         Technologies.CalcBody();
     },
@@ -459,9 +535,11 @@ let Technologies = {
         }
 
         // Teilweise erforscht
-        for (let i = 0; i < Technologies.UnlockedTechnologies['inProgressTechnologies'].length; i++) {
-            let InProgTech = Technologies.UnlockedTechnologies['inProgressTechnologies'][i];
+        let InProgressTechs = Technologies.UnlockedTechnologies['inProgressTechnologies'] || [];
+        for (let i = 0; i < InProgressTechs.length; i++) {
+            let InProgTech = InProgressTechs[i];
             let Index = TechDict[InProgTech['tech_id']];
+            if (Index === undefined) continue;
             Technologies.AllTechnologies[Index]['currentSP'] = InProgTech['currentSP'];
         }
 
@@ -554,6 +632,7 @@ let Technologies = {
 	        h.push('<div class="text-small">');
             h.push('<input id="IgnorePrevEra" class="ignoreprevera game-cursor" ' + (Technologies.IgnorePrevEra ? 'checked' : '') + ' type="checkbox">' + i18n('Boxes.Technologies.IgnorePrevEra') + '<br>');
             h.push('<input id="IgnoreCurrentEraOptional" class="ignorecurrenteraoptional game-cursor" ' + (Technologies.IgnoreCurrentEraOptional ? 'checked' : '') + ' type="checkbox">' + i18n('Boxes.Technologies.IgnoreCurrentEraOptional') + '<br>');
+            h.push('<input id="GroupByEra" class="groupbyera game-cursor" ' + (Technologies.GroupByEra ? 'checked' : '') + ' type="checkbox">' + i18n('Boxes.Technologies.GroupByEra') + '<br>');
         	h.push('</div>');
         h.push('</div>');
 
@@ -562,20 +641,25 @@ let Technologies = {
             h.push('<div class="technologies-hint">' + i18n('Boxes.Technologies.NoTechs') + '</div>');
         }
 
-        h.push('<table class="foe-table sortable-table exportable">');
+        // grouped mode uses its own sort handling (era blocks are sorted internally),
+        // so the global tableSorter must not be attached to the table
+        h.push('<table class="foe-table exportable ' + (Technologies.GroupByEra ? 'technologies-grouped' : 'sortable-table') + '">');
 
         // Only show the cumulative column when the cumulative range spans more than
         // the selected era (otherwise it would be identical to the "Required" column).
         let ShowCumulative = CumLowerEraID < SelEraID;
 
+        // sort indicator of the grouped mode
+        let SortClass = (column) => (Technologies.GroupByEra && Technologies.SortColumn === column ? (Technologies.SortDirection === 1 ? ' ascending' : ' descending') : '');
+
         h.push('<thead class="sticky">' +
             '<tr class="sorter-header">' +
             '<th class="no-sort"></th>' +
-            '<th data-type="technologiesTBody" data-export="resource">' + i18n('Boxes.Technologies.Resource') + '</th>' +
-            '<th class="is-number" data-type="technologiesTBody" data-export="required">' + i18n('Boxes.Technologies.DescRequired') + '</th>' +
-            (ShowCumulative ? '<th class="is-number" data-type="technologiesTBody" data-export="cumulative">' + i18n('Boxes.Technologies.DescCumulative') + '</th>' : '') +
-            '<th class="is-number" data-type="technologiesTBody" data-export="instock">' + i18n('Boxes.Technologies.DescInStock') + '</th>' +
-            '<th class="is-number text-right" data-type="technologiesTBody" data-export="remaining">' + i18n('Boxes.Technologies.DescStillMissing') + '</th>' +
+            '<th class="' + SortClass(1) + '" data-type="technologiesTBody" data-export="resource">' + i18n('Boxes.Technologies.Resource') + '</th>' +
+            '<th class="is-number' + SortClass(2) + '" data-type="technologiesTBody" data-export="required">' + i18n('Boxes.Technologies.DescRequired') + '</th>' +
+            (ShowCumulative ? '<th class="is-number' + SortClass(3) + '" data-type="technologiesTBody" data-export="cumulative">' + i18n('Boxes.Technologies.DescCumulative') + '</th>' : '') +
+            '<th class="is-number' + SortClass(ShowCumulative ? 4 : 3) + '" data-type="technologiesTBody" data-export="instock">' + i18n('Boxes.Technologies.DescInStock') + '</th>' +
+            '<th class="is-number text-right' + SortClass(ShowCumulative ? 5 : 4) + '" data-type="technologiesTBody" data-export="remaining">' + i18n('Boxes.Technologies.DescStillMissing') + '</th>' +
             '</tr>' +
             '</thead>');
 
@@ -588,46 +672,38 @@ let Technologies = {
             // Welche Güter werden gerade aktiv produziert?
             let ActiveProductionGoods = Technologies.GetActiveProductionGoods();
 
-            // Reihenfolge der Ausgabe generieren
-            let OutputList = ['strategy_points', 'money', 'supplies'];
-            for (let i = 0; i < 70; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'promethium';
-            for (let i = 70; i < 75; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'orichalcum';
-            for (let i = 75; i < 80; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'mars_ore';
-            for (let i = 80; i < 85; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'asteroid_ice';
-            for (let i = 85; i < 90; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'venus_carbon';
-            for (let i = 90; i < 95; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'unknown_dna';
-            for (let i = 95; i < 100; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'crystallized_hydrocarbons';
-            for (let i = 100; i < 105; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
-            }
-            OutputList[OutputList.length] = 'dark_matter';
-            for (let i = 105; i < GoodsList.length; i++) {
-                OutputList[OutputList.length] = GoodsList[i]['id'];
+            // special era resources grouped by era, taken from the game's resource definitions
+            let SpecialsByEra = {};
+            for (let Resource of FHResourcesList) {
+                if (Resource['abilities']?.['specialResource']?.['type'] === 'specialResource' && Resource['era']) {
+                    (SpecialsByEra[Resource['era']] = SpecialsByEra[Resource['era']] || []).push(Resource['id']);
+                }
             }
 
+            // output order: era by era the special resource (research gate) first, then the era's goods;
+            // strategy points, coins and supplies stay on top of the table in every mode (era null)
+            let OutputList = [
+                    { id: 'strategy_points', era: null },
+                    { id: 'money', era: null },
+                    { id: 'supplies', era: null }
+                ],
+                LastEra = null;
+            for (let i = 0; i < GoodsList.length; i++) {
+                let Era = GoodsList[i]['era'];
+
+                if (Era !== LastEra) {
+                    OutputList.push(...(SpecialsByEra[Era] || []).map(id => ({ id: id, era: Era })));
+                    LastEra = Era;
+                }
+
+                OutputList.push({ id: GoodsList[i]['id'], era: Era });
+            }
+
+            let Rows = [];
             for (let i = 0; i < OutputList.length; i++) {
-                let ResourceName = OutputList[i];
+                let ResourceName = OutputList[i]['id'];
+                // resources without goods metadata (e.g. brand-new era resources) would break the whole render
+                if (GoodsData[ResourceName] === undefined) continue;
                 if (RelevantResources[ResourceName]) {
                     let Required = RequiredResources[ResourceName] || 0;
                     let Cumulative = CumulativeResources[ResourceName] || 0;
@@ -643,16 +719,66 @@ let Technologies = {
                     let IsProducible = (ResourceName !== 'strategy_points' && ResourceName !== 'money' && ResourceName !== 'supplies') && ProducibleGoods.has(ResourceName);
                     let IsActive = IsProducible && ActiveProductionGoods.has(ResourceName);
                     let NameClass = IsProducible ? (IsActive ? 'producible-good actively-produced' : 'producible-good') : '';
-                    h.push('<tr' + (IsDone ? ' class="technologies-done"' : '') + '>');
-                    h.push('<td class="goods-image" style="width:25px"><span class="goods-sprite sprite-35 '+ GoodsData[ResourceName]['id'] +'"></span></td>');
-                    h.push('<td data-text="' + helper.str.cleanup(GoodsData[ResourceName]['name']) + '"' + (NameClass ? ' class="' + NameClass + '"' : '') + '>' + GoodsData[ResourceName]['name'] + '</td>');
-                    h.push('<td data-number="' + Required + '">' + HTML.Format(Required) + '</td>');
+
+                    let r = [];
+                    r.push('<tr' + (IsDone ? ' class="technologies-done"' : '') + '>');
+                    r.push('<td class="goods-image" style="width:25px"><span class="goods-sprite sprite-35 '+ GoodsData[ResourceName]['id'] +'"></span></td>');
+                    r.push('<td data-text="' + helper.str.cleanup(GoodsData[ResourceName]['name']) + '"' + (NameClass ? ' class="' + NameClass + '"' : '') + '>' + GoodsData[ResourceName]['name'] + '</td>');
+                    r.push('<td data-number="' + Required + '">' + HTML.Format(Required) + '</td>');
                     if (ShowCumulative) {
-                        h.push('<td data-number="' + Cumulative + '">' + HTML.Format(Cumulative) + '</td>');
+                        r.push('<td data-number="' + Cumulative + '">' + HTML.Format(Cumulative) + '</td>');
                     }
-                    h.push('<td data-number="' + Stock + '">' + HTML.Format(Stock) + '</td>');
-                    h.push('<td data-number="' + Diff + '" class="text-right text-' + (Diff < 0 ? 'danger' : 'success') + '">' + HTML.Format(Diff) + '</td>');
-                    h.push('</tr>');
+                    r.push('<td data-number="' + Stock + '">' + HTML.Format(Stock) + '</td>');
+                    r.push('<td data-number="' + Diff + '" class="text-right text-' + (Diff < 0 ? 'danger' : 'success') + '">' + HTML.Format(Diff) + '</td>');
+                    r.push('</tr>');
+
+                    // column values for the grouped mode sort, aligned with the column indexes
+                    let SortValues = [null, GoodsData[ResourceName]['name'], Required];
+                    if (ShowCumulative) SortValues.push(Cumulative);
+                    SortValues.push(Stock, Diff);
+
+                    Rows.push({ era: OutputList[i]['era'], html: r.join(''), values: SortValues });
+                }
+            }
+
+            if (Technologies.GroupByEra) {
+                let ColumnCount = (ShowCumulative ? 6 : 5);
+
+                // sort each era block internally, the block order itself stays era by era
+                if (Technologies.SortColumn !== null) {
+                    let Column = Technologies.SortColumn,
+                        Direction = Technologies.SortDirection,
+                        Groups = [];
+                    for (let Row of Rows) {
+                        let LastGroup = Groups[Groups.length - 1];
+                        if (!LastGroup || LastGroup.era !== Row.era) {
+                            Groups.push({ era: Row.era, rows: [Row] });
+                        } else {
+                            LastGroup.rows.push(Row);
+                        }
+                    }
+                    Rows = Groups.flatMap(group =>
+                        group.rows.sort((a, b) => {
+                            let A = a.values[Column], B = b.values[Column];
+                            if (typeof A === 'string') return A.localeCompare(B) * Direction;
+                            return (A - B) * Direction;
+                        })
+                    );
+                }
+
+                LastEra = null;
+                for (let Row of Rows) {
+                    if (Row.era !== null && Row.era !== LastEra) {
+                        let EraID = Technologies.Eras[Row.era];
+                        h.push('<tr class="technologies-era-row"><td colspan="' + ColumnCount + '">' + (EraID !== undefined ? i18n('Eras.' + EraID) : Row.era) + '</td></tr>');
+                        LastEra = Row.era;
+                    }
+                    h.push(Row.html);
+                }
+            }
+            else {
+                for (let Row of Rows) {
+                    h.push(Row.html);
                 }
             }
         }
@@ -705,8 +831,9 @@ let Technologies = {
             Technologies.AllTechnologies[Index]['currentSP'] = Technologies.GetTechFP(Technologies.AllTechnologies[Index]);
         }
 
-        for (let i = 0; i < Technologies.UnlockedTechnologies['inProgressTechnologies'].length; i++) {
-            let InProgTech = Technologies.UnlockedTechnologies['inProgressTechnologies'][i];
+        let InProgressTechs = Technologies.UnlockedTechnologies['inProgressTechnologies'] || [];
+        for (let i = 0; i < InProgressTechs.length; i++) {
+            let InProgTech = InProgressTechs[i];
             let Index = TechDict[InProgTech['tech_id']];
             if (Index === undefined) continue;
             Technologies.AllTechnologies[Index]['currentSP'] = InProgTech['currentSP'];
@@ -1038,3 +1165,5 @@ let Technologies = {
         return activeGoods;
     },
 };
+
+Technologies.BuildEraMaps();

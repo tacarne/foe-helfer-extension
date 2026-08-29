@@ -87,7 +87,7 @@ let IgnoreList = {
         const url = `https://foe-data.ovh/api/world/${world}/player/${id}`;
 
         MainParser.sendExtMessage({
-            type: 'getFromApi',
+            type: 'getApi',
             url
         })
 

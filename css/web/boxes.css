@@ -309,6 +309,75 @@ a[target="_blank"] svg {
 	border-right-width: 1px;
 }
 
+/* percent button editor in the calculator settings */
+.percent-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	justify-content: center;
+	align-items: center;
+	padding: 8px 6px;
+}
+
+.percent-chip {
+	display: inline-flex;
+	align-items: stretch;
+	border-radius: 3px;
+	overflow: hidden;
+	font-size: 9pt;
+	color: var(--white);
+	background: var(--btn-bg);
+	box-shadow: inset 0 0 0 1px var(--black-30);
+	text-shadow: 0 1px 1px var(--black-50);
+}
+
+.percent-chip .chip-value {
+	padding: 2px 6px 3px;
+}
+
+.percent-chip.arc .chip-value {
+	background: var(--btn-bg-active);
+}
+
+.percent-chip .chip-del {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 5px 3px;
+	background: var(--btn-bg-red);
+	border-left: 1px solid var(--black-30);
+	cursor: url('../images/cursor_hover.cur'), pointer;
+}
+
+.percent-chip .chip-del:hover {
+	background: var(--btn-bg-red-active);
+}
+
+.percent-chip.ghost {
+	background: none;
+	box-shadow: none;
+	border: 1px dashed var(--white-65);
+	color: var(--white-65);
+	padding: 1px 6px 2px;
+	cursor: url('../images/cursor_hover.cur'), pointer;
+}
+
+.percent-chip.ghost:hover {
+	border-color: var(--white);
+	color: var(--white);
+}
+
+.percent-add {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	margin-left: 4px;
+}
+
+.percent-add input.percent-add-input {
+	width: 44px;
+	text-align: center;
+}
+
 .info-tip {
 	background-color: var(--table-bb-info);
 	color: var(--white);
@@ -543,7 +612,8 @@ table.foe-table.vertical-top td {
 	vertical-align: top;
 }
 
-tr.vertical-middle td {
+tr.vertical-middle td,
+tr.vertical-middle th {
 	vertical-align: middle;
 }
 
@@ -602,7 +672,7 @@ p {
 	overflow: hidden;
 }
 
-.flex { 
+.flex {
 	display: flex;
 	justify-content: center;
 	flex-wrap: wrap;
@@ -662,6 +732,11 @@ p {
 
 [id$=greatBuildings-Btn] span {
 	background-image: url('../images/menu/greatbuildings.png');
+}
+
+[id$=gbBonuses-Btn] span {
+	background-image: url('../images/menu/greatbuildings.png');
+	filter: hue-rotate(180deg);
 }
 
 [id$=productions-Btn] span {
@@ -826,6 +901,27 @@ p {
 [id$=webRequest-Btn] span {
 	background-image: url('../../js/web/webrequest/images/webrequest.svg');
 	background-size: 65%;
+}
+
+[id$=ascended-Btn] span {
+	background-image: url('../../js/web/ascended/images/ascended.png');
+	background-size: 65%;
+}
+
+[id$=checklist-Btn] span {
+	background-image: url('../../js/web/checklist/images/checklist.png');
+	background-size: auto 60%;
+}
+
+[id$=citySearch-Btn] span {
+	background-image: url('../../js/web/citysearch/images/citysearch.png');
+	background-size: auto 60%;
+}
+
+/* red counter: expired limited buildings in the city */
+.hud-btn #ascended-expired-count {
+	background-color: var(--red);
+	box-shadow: 0 0 1px 1px var(--danger-red);
 }
 
 /***********************************************************************************/
@@ -1161,12 +1257,12 @@ FP-Bar */
 	background-image: url('../../js/web/strategy-points/images/fp-bar-buyable-bg.png');
 }
 
-#fp-bar .fp-storage div, 
+#fp-bar .fp-storage div,
 #fp-bar .buyable-fp div {
 	margin: 5px 0 0 30px;
 }
 
-#fp-bar .small-screen .fp-storage, 
+#fp-bar .small-screen .fp-storage,
 #fp-bar .small-screen .buyable-fp {
 	background-color: rgba(0, 0, 0, 0.75);
 	border: 1px solid rgba(243, 214, 160, 0.65);
@@ -2016,7 +2112,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .hud-btn-left,
-.hud-btn-right, 
+.hud-btn-right,
 .hud-btn-left::before,
 .hud-btn-right::before {
 	position: absolute;
@@ -2590,7 +2686,7 @@ tr.sorter-header.sort2 th.ascending:before, tr.sorter-header.sort2 th.descending
 	#game_body {
 		overflow: hidden
 	}
-	
+
 }
 @media (max-width: 1420px) {
 	#fp-bar {

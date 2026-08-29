@@ -17,7 +17,7 @@ FoEproxy.addHandler('BoostService', 'getAllBoosts', (data, postData) => {
     if (Boosts.first) {
         Boosts.first = false;
         Boosts.InitQIAP();
-    } 
+    }
 });
 FoEproxy.addHandler('BoostService', 'addBoost', (data,postData)=> {
     if (postData[0].requestClass == "CityMapService") return;
@@ -133,20 +133,25 @@ let Boosts = {
     },
 
     InitLB: async (LBs) => {
-        
-        let boosts=LBs.filter(x=>x.bonus?.type && x.player_id == ExtPlayerID).map(x=>
-            ({
-                entityId: x.entityId||x.id,
-                origin: "greatBuilding",
-                type: x.bonus.type,
-                value: x.bonus.value || 0
-            })
+
+        // supports both the classic single `bonus` field and the `bonuses`
+        // array of the multi-tier rework (production bonuses are no boosts);
+        // classic worlds carry `bonuses` as an empty array next to the filled field
+        let boosts=LBs.filter(x=>x.player_id == ExtPlayerID).flatMap(x=>
+            (x.bonuses?.length ? x.bonuses : (x.bonus ? [x.bonus] : []))
+                .filter(b=>b?.type && b.bonusCategory?.value !== 'productionBonus')
+                .map(b=>({
+                    entityId: x.entityId||x.id,
+                    origin: "greatBuilding",
+                    type: b.type,
+                    value: b.value || 0
+                }))
         )
         Boosts.Remove(boosts)
         Boosts.Add(boosts)
     },
     InitQIAP: async () => {
-        await ExistenceConfirmed('GoodsData.guild_raids_action_points');
+        await ExistenceConfirmed(() => GoodsData.guild_raids_action_points != null);
         QIActions.capacity  = (GoodsData.guild_raids_action_points?.abilities?.autoRefill?.maxAmount || 200000) - Boosts.Sums['guild_raids_action_points_capacity'];
 
     },
@@ -173,9 +178,9 @@ let Boosts = {
             if (b.origin == "castle_system") {
                 Boosts.CastleSystem.push(b)
             }
-            
+
             if (b.origin === "inventory_item") {
-                BoostPotions.activate(b.type,{expire:b.expireTime,target:b.targetedFeature||"all",value:b.value})    
+                BoostPotions.activate(b.type,{expire:b.expireTime,target:b.targetedFeature||"all",value:b.value})
                 if (b.expireTime) {
                     BoostPotions.TimeOut?.add(b)
                 }
@@ -186,7 +191,7 @@ let Boosts = {
                     a.type = x
                     return a
                 }) || [structuredClone(b)]
-            for (let m of mapped) {        
+            for (let m of mapped) {
                 m.type = Boosts.getFeatureType(m);
                 Boosts.ListByType[m.type]?.push(m);
             }
@@ -238,7 +243,7 @@ let Boosts = {
                     boost.startTime = building.state.next_state_transition_at
                     boost.entityId = building.id
                     boost.origin = "building"
-                    if (metaData?.components?.AllAge?.limited) {   
+                    if (metaData?.components?.AllAge?.limited) {
                         boost.expireTime = building.state.decaysAt || building.state.next_state_transition_at + metaData.components.AllAge.limited.config.expireTime
                         Boosts.TimeOut.add(boost)
                     }
@@ -253,7 +258,7 @@ let Boosts = {
                         }
                     }
                 }
-                 
+
                 if (metaData?.components?.AllAge?.limited) {
                     let target = metaData.components.AllAge.limited.config.targetCityEntityId
                     let metaTarget = structuredClone(MainParser.CityEntities[target])
@@ -264,10 +269,10 @@ let Boosts = {
                         boost.entityId = building.id
                         boost.origin = "building"
                         addToList(boost)
-                    } 
-                }   
+                    }
+                }
             }
-            Boosts.Add(boostsToAddDirectly)    
+            Boosts.Add(boostsToAddDirectly)
         },
     },
     TimeOut:{
@@ -279,7 +284,7 @@ let Boosts = {
                 Boosts.Timer.next = boost.expireTime
             }
             Boosts.TimeOut.list.push(boost)
-        },  
+        },
     },
     Timer:{
         next:null,
@@ -318,7 +323,7 @@ let Boosts = {
         }
         Boosts.updateSums();
     },
-        
+
 }
 
 Boosts.Init();

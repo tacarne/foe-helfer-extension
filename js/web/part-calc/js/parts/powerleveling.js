@@ -130,7 +130,7 @@ Object.assign(Parts, {
 		StartLevel = StartLevel >= EndLevel ? EndLevel - 1 : StartLevel;
 
 		let Totals = [],
-			Places = [],			
+			Places = [],
 			EigenBruttos = [],
 			HasDoubleCollection = false,
 			DoubleCollections = [],
@@ -157,10 +157,10 @@ Object.assign(Parts, {
 			// ...and for the current, it's already calculated
 			else {
 				Places[i] = Parts.CurrentMaezens;
-				
+
 				EigenBruttos[i] = Parts.RemainingOwnPart;
 			}
-			
+
 			let FPGreatBuilding = GreatBuildings.GreatBuildingsData.find(obj => (obj.ID === EntityID && obj.FPProductions));
 			if (FPGreatBuilding && !['X_FutureEra_Landmark1','X_AllAge_Expedition'].includes(EntityID)) { //FP produzierende LGs ohne Arche
 				HasDoubleCollection = true;
@@ -241,10 +241,10 @@ Object.assign(Parts, {
 			Parts.PowerLevelingData = Parts.CalcBodyPowerLevelingData();
 			/** @type {string[]} */
 			const h = [];
-			
+
 			Parts.CalcTableBodyPowerLeveling(h);
 
-			tableBody.innerHTML = h.join('');
+			$(tableBody).html(h.join(''));
 
 			// Startlevel
 			const startLevel = /** @type {HTMLInputElement} */(document.getElementById('startLevel'));

@@ -17,7 +17,7 @@
 try {
 	importScripts('vendor/browser-polyfill/browser-polyfill.min.js','vendor/dexie/dexie.min.js')
 }
-catch {	
+catch {
 }
 
 // @ts-ignore
@@ -108,7 +108,7 @@ alertsDB.version(1).stores({
 			if (typeof data.persistent !== 'boolean') throw 'Alert: "data.persistent" needs to be a boolean';
 			if (typeof data.tag        !== 'string')  throw 'Alert: "data.tag" needs to be a string';
 			if (typeof data.vibrate    !== 'boolean') throw 'Alert: "data.vibrate" needs to be a boolean';
-			
+
 			// copy attributes to prevent additional attributes
 			return {
 				title:   data.title,
@@ -252,7 +252,7 @@ alertsDB.version(1).stores({
 		function triggerAlert(alert) {
 			return browser.notifications.create(
 				alert.id != null ? (prefix + alert.id) : previevId,
-				Object.assign(navigator.userAgent.indexOf("Firefox") > -1 ? {}: 
+				Object.assign(navigator.userAgent.indexOf("Firefox") > -1 ? {}:
 					{
 						requireInteraction: alert.data.persistent||false,
 						buttons: alert.data.actions
@@ -263,10 +263,43 @@ alertsDB.version(1).stores({
 						iconUrl: '/images/app128.png',
 						eventTime: alert.data.expires,
 						contextMessage: 'FoE-Helper − '+trimPrefix(alert.server, "https://")
-						
+
 					}
 				)
 			);
+		}
+
+		/**
+		 * shows the notification of an alert exactly once, no matter whether the
+		 * browser alarm or a precise page side timer got there first
+		 * @param {!number} alertId the id of the alert to fire
+		 * @returns {Promise<boolean>} true if this call fired the notification
+		 */
+		async function fireAlert(alertId) {
+			const alertData = await db.transaction('rw', db.alerts, async () => {
+				const alertData = await Alerts.get(alertId);
+				// already fired => this is the slower of the two paths, ignore it
+				if (alertData == null || alertData.triggered) return null;
+				alertData.triggered = true;
+				await db.alerts.put(alertData);
+				return alertData;
+			});
+			if (alertData == null) return false;
+
+			triggerAlert(alertData);
+			return true;
+		}
+
+		/**
+		 * fires an alert ahead of its browser alarm and drops the now obsolete alarm
+		 * @param {!number} alertId the id of the alert to fire
+		 * @returns {Promise<boolean>} true if this call fired the notification
+		 */
+		async function fireAlertNow(alertId) {
+			const fired = await fireAlert(alertId);
+			// the alarm would only produce a duplicate now
+			await browser.alarms.clear(prefix + alertId);
+			return fired;
 		}
 
 		// Alarm triggered => show Notification
@@ -276,16 +309,7 @@ alertsDB.version(1).stores({
 			const alertId = Number.parseInt(alarm.name.substring(prefix.length));
 			if (!Number.isInteger(alertId) || alertId > Number.MAX_SAFE_INTEGER || alertId < 0) return;
 
-			const alertData = await db.transaction('rw', db.alerts, async () => {
-				const alertData = await Alerts.get(alertId);
-				if (alertData == null) return null;
-				alertData.triggered = true;
-				await db.alerts.put(alertData);
-				return alertData;
-			});
-			if (alertData == null) return;
-
-			triggerAlert(alertData);
+			await fireAlert(alertId);
 		});
 
 
@@ -333,7 +357,7 @@ alertsDB.version(1).stores({
 
 		// upon start cleanup alerts which didn't get removed properly.
 		//cleanupAlerts(); // deactivated - is triggered too often and deletes correct/active alarms (it seems the background.js is unloaded/reloaded regularly and this is triggered then unintentionally)
-				
+
 		return {
 			getValidData: getValidateAlertData,
 			/**
@@ -358,7 +382,8 @@ alertsDB.version(1).stores({
 			create: createAlert,
 			createTemp: createAlertData,
 			setData: setAlertData,
-			trigger: triggerAlert
+			trigger: triggerAlert,
+			triggerNow: fireAlertNow
 		};
 	})();
 
@@ -375,7 +400,7 @@ alertsDB.version(1).stores({
 
 		// @ts-ignore
 		//const askText = ask[lng];
-		
+
 		/*if(!isDevMode() ) browser.tabs.create({
 			url: `https://foe-helper.com/extension/update?lang=${lng}`
 		});*/
@@ -417,8 +442,8 @@ alertsDB.version(1).stores({
 
 	/**
 	 * handles internal and external extension communication
-	 * @param {any} request 
-	 * @param {browser.runtime.MessageSender} sender 
+	 * @param {any} request
+	 * @param {browser.runtime.MessageSender} sender
 	 * @returns {Promise<{ok: true, data: any} | {ok: false, error: string}>}
 	 */
 	async function handleWebpageRequests(request, sender) {
@@ -581,6 +606,19 @@ alertsDB.version(1).stores({
 							return APIsuccess(true);
 						}
 
+						case 'triggerNow': { // action
+							const id = request.id;
+							if (!Number.isInteger(id)) return APIerror('malformed request: expected "id": integer');
+
+							const alert = await Alerts.get(id);
+							if (!alert || alert.server !== server || alert.playerId !== playerId) return APIsuccess(false);
+
+							// browser alarms are only accurate to roughly a minute, so an open
+							// game tab fires the alert on time and cancels the pending alarm
+							const fired = await Alerts.triggerNow(id);
+							return APIsuccess(fired);
+						}
+
 						case 'delete': { // action
 							const id = request.id;
 							if (!Number.isInteger(id)) return APIerror('malformed request: expected "id": integer');
@@ -629,16 +667,6 @@ alertsDB.version(1).stores({
 					body: request.data
 				});
 				return APIsuccess(true);
-			}
-
-			case 'getFromApi': { // type
-				try {
-					const response = await fetch(request.url, { method: 'GET' });
-					const data = await response.json();
-					return APIsuccess(data);
-				} catch (e) {
-					return APIerror(`getFromApi failed: ${e.message}`);
-				}
 			}
 
 			case 'showNotification': { // type

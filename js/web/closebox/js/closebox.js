@@ -90,7 +90,7 @@ let CloseBox = {
                 dragdrop: true,
                 resize: false,
                 minimize: false,
-                settings: 'CloseBox.CloseBoxSettings()'
+                settings: () => CloseBox.CloseBoxSettings()
             });
 
             HTML.AddCssFile('closebox');
@@ -165,7 +165,7 @@ let CloseBox = {
         $("#cb-hide-all-windows").removeClass("invisible btn-delete").addClass("btn-green");
         $(".window-box, #foe-helper-hud, .helper-blocker").show();
         $("#TooltipContainer").hide();
-        
+
     },
 
 

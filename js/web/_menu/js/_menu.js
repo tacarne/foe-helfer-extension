@@ -27,9 +27,13 @@ let _menu = {
 	TopOffset: 0,
 
 	MenuOptions: ['BottomBar', 'RightBar', 'Box'],
-	
+
 	Items: [
 		//'calculator',
+		'citySearch',
+		'checklist',
+		'gbBonuses',
+		'ascended',
 		'webRequest',
 		'inventory',
 		'partCalc',
@@ -77,7 +81,7 @@ let _menu = {
 	 * Create the div holders and put them to the DOM
 	 */
 	CallSelectedMenu: (selMenu = 'RightBar') => {
-	
+
 		window.onresize = (function(event){
 			if (event.target == window) _menu.OverflowCheck()
 		})
@@ -102,7 +106,7 @@ let _menu = {
 		if (Settings.GetSetting('AutoOpenCloseBox')) {
 			CloseBox.BuildBox();
 		}
-		
+
 		_menu.OverflowCheck(_menu.selectedMenu, true);
 	},
 
@@ -135,7 +139,7 @@ let _menu = {
 		}
 	},
 
-	
+
 	toolTipp: (btn, title, desc) => {
 		$(btn).attr('title', desc);
 		let pos = (_menu.selectedMenu === 'RightBar' ? 'left' : 'top');
@@ -260,7 +264,7 @@ let _menu = {
 
 			_menu.HiddenItems.push(name);
 		}
-		
+
 		localStorage.setItem('MenuHiddenItems', JSON.stringify(_menu.HiddenItems));
 
 		// refresh the Menü after setting-toggle
@@ -297,14 +301,14 @@ let _menu = {
 			`${slug}-btn`
 		);
 
-		if (red) 
+		if (red)
 			btn.addClass('hud-btn-red');
 
 		return btn;
 	},
 
 	/*----------------------------------------------------------------------------------------------------------------*/
-	
+
 	ItemsData: [
 		{ id: 'partCalc', title: i18n('Menu.OwnpartCalculator.Title'), description: i18n('Menu.OwnpartCalculator.Desc'), warning: '<em id="partCalc-Btn-closed" class="tooltip-error">' + i18n('Menu.OwnpartCalculator.Warning') + '<br></em>'},
 		{ id: 'unit', title: i18n('Menu.Unit.Title'), description: i18n('Menu.Unit.Desc'), warning: '<em id="unit-Btn-closed" class="tooltip-error">' + i18n('Menu.Unit.Warning') + '<br></em>'},
@@ -337,6 +341,10 @@ let _menu = {
 		{ id: 'greatBuildings', title: i18n('Menu.greatbuildings.Title'), description: i18n('Menu.greatbuildings.Desc') },
 		{ id: 'kits', title: i18n('Menu.Kits.Title'), description: i18n('Menu.Kits.Desc') },
 		{ id: 'inventory', title: i18n('Menu.Inventory.Title'), description: i18n('Menu.Inventory.Desc') },
+		{ id: 'ascended', title: i18n('Menu.Ascended.Title'), description: i18n('Menu.Ascended.Desc') },
+		{ id: 'checklist', title: i18n('Menu.Checklist.Title'), description: i18n('Menu.Checklist.Desc') },
+		{ id: 'citySearch', title: i18n('Menu.CitySearch.Title'), description: i18n('Menu.CitySearch.Desc') },
+		{ id: 'gbBonuses', title: i18n('Menu.GBBonuses.Title'), description: i18n('Menu.GBBonuses.Desc') },
 		{ id: 'stats', title: i18n('Menu.Stats.Title'), description: i18n('Menu.Stats.Desc') },
 		{ id: 'settings', title: i18n('Menu.Settings.Title'), description: i18n('Menu.Settings.Desc') },
 		{ id: 'notice', title: i18n('Menu.Notice.Title'), description: i18n('Menu.Notice.Desc') },
@@ -840,7 +848,7 @@ let _menu = {
 				betterMusic.CloseBox();
 			} else {
 				betterMusic.ShowDialog();
-			}		
+			}
 
 		});
 
