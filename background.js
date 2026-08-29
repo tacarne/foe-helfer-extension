@@ -669,6 +669,16 @@ alertsDB.version(1).stores({
 				return APIsuccess(true);
 			}
 
+            case 'getFromApi': { // type
+                try {
+                    const response = await fetch(request.url, { method: 'GET' });
+                    const data = await response.json();
+                    return APIsuccess(data);
+                } catch (e) {
+                    return APIerror(`getFromApi failed: ${e.message}`);
+                }
+            }
+
 			case 'showNotification': { // type
 				try {
 					const title = request.title;
