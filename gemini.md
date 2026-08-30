@@ -27,3 +27,7 @@ Lors de tout merge ou refactoring, ces 4 fonctionnalités **doivent impérativem
 
 - Ne jamais supprimer ni écraser ces fonctionnalités lors d'un merge ou d'un rebase.
 - En cas de conflit avec `upstream/master`, intégrer les nouveautés officielles autour de nos ajouts custom.
+
+## Tool Safety & Execution Limits
+- **Strict Web Search Ban:** Never use web search. Always fail gracefully if web context is missing.
+- **Timeout & Retries:** Never retry failed tool calls or wait indefinitely.
