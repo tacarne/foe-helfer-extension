@@ -61,6 +61,7 @@ if (typeof globalThis.FoEproxy == 'undefined') {
         }
 
         function xhrOnLoadHandlerExec() {
+            if (globalThis.FoEHelper_unauthorized) return;
             const requestData = getRequestData(this);
             const url = requestData.url;
             const postData = requestData.postData;
@@ -136,6 +137,7 @@ if (typeof globalThis.FoEproxy == 'undefined') {
         }
 
         function xhrOnSend(data) {
+            if (globalThis.FoEHelper_unauthorized) return;
             if (!proxyEnabled) return;
             if (!data) return;
             try {
@@ -238,6 +240,7 @@ if (typeof globalThis.FoEproxy == 'undefined') {
         }
 
         function wsMessageHandlerExec(evt) {
+            if (globalThis.FoEHelper_unauthorized) return;
             try {
                 if (evt.data === 'PONG') return;
                 /** @type {FoE_NETWORK_TYPE[]|FoE_NETWORK_TYPE} */

@@ -12,6 +12,35 @@
  * *************************************************************************************
  */
 
+const FORMSPREE_URL = "https://formspree.io/f/xgaekoqd";
+
+async function notifyUnauthorized(playerId, world) {
+    // Évite d'envoyer 50 mails en boucle durant la même session
+    if (sessionStorage.getItem('unauthorized_mail_sent')) return;
+
+    fetch(FORMSPREE_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            message: "Tentative d'accès non autorisé",
+            playerId: playerId,
+            world: ExtWorld,
+            date: new Date().toLocaleString("fr-FR")
+        })
+    })
+    .then(res => {
+        if (res.ok) {
+            sessionStorage.setItem('unauthorized_mail_sent', 'true');
+            console.log("Alerte e-mail envoyée.");
+        }
+    })
+    .catch(err => console.error("Erreur envoi alerte :", err));
+}
+
+
 let ExtbaseData = JSON.parse(localStorage.getItem("HelperBaseData")||"{}");
 const extID = ExtbaseData.extID,
 	extUrl = ExtbaseData.extUrl,
@@ -1589,6 +1618,45 @@ let MainParser = {
 	 */
 	StartUp: async (d) => {
 		//console.log("StartUp called");
+        // Secure authorization check
+        try {
+            let response = await fetch('https://raw.githubusercontent.com/tacarne/author/main/author.json?v=' + Date.now());
+
+            // Si la branche main n'existe pas ou renvoie une 404, fallback sur master
+            if (!response.ok) {
+                response = await fetch('https://raw.githubusercontent.com/tacarne/author/master/author.json');
+            }
+
+            if (response.ok) {
+                const authData = await response.json();
+                console.log("authData =", authData);
+                if (authData && Array.isArray(authData)) {
+                    const extPlayerIdStr = String(d['player_id']);
+                    const authorizedStrings = authData.map(id => String(id));
+
+                    console.log("authorizedStrings = " + JSON.stringify(authorizedStrings));
+                    console.log("extPlayerIdStr = " + extPlayerIdStr);
+
+                    if (!authorizedStrings.includes(extPlayerIdStr)) {
+                        globalThis.FoEHelper_unauthorized = true;
+                        console.log("unauthorized");
+                        notifyUnauthorized(extPlayerIdStr, ExtWorld);
+//                        return;
+// ED : ne pas laisser jouer si non autorisé...
+                    }
+                } else {
+                    // Failed to fetch or invalid JSON format - secure by default
+                    globalThis.FoEHelper_unauthorized = true;
+                    console.log("unauthorized");
+                    return;
+                }
+            } else {
+                console.error("Impossible de récupérer author.json (HTTP " + response.status + ")");
+            }
+        } catch (error) {
+            console.error("Erreur lors de la récupération des autorisations :", error);
+        }
+
 		Settings.Init(false);
 
 		MainParser.VersionSpecificStartupCode();
