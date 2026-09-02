@@ -10,7 +10,7 @@ Ce dépôt est un **fork personnel** de l'extension FoE Helper.
 
 ## 🛠️ Modifications & Fonctionnalités Clés de `ma_version_2`
 
-Lors de tout merge ou refactoring, ces 4 fonctionnalités **doivent impérativement être conservées** :
+Lors de tout merge ou refactoring, ces 5 fonctionnalités **doivent impérativement être conservées** :
 
 1. **Calculatrice de PFM / Grands Monuments :**
    - Colonnes ajoutées : **Gain**, **Min sécurisé** et **Taux**.
@@ -20,6 +20,8 @@ Lors de tout merge ou refactoring, ces 4 fonctionnalités **doivent impérativem
    - Nouveau bouton + fenêtre d'affichage des combats réalisés par les membres d'autres guildes.
 4. **Module Joueurs Ignorés :**
    - Nouveau bouton + fenêtre dédiée à la liste et au suivi des joueurs ignorés.
+5. **Vérification autorisation :**
+   - Vérification au démarrage si l'id du joueur figure dans la liste blanche author.json.
 
 ---
 
