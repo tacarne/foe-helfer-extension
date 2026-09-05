@@ -648,11 +648,64 @@ let _menu = {
 	/**
 	 * Inventory overview
 	 */
+	/**
+	 * Building search: mark buildings of the own city by name
+	 */
+	citySearch_Btn: () => {
+		let btn = _menu.MakeButton('citySearch');
+
+		let btn_sp = $('<span />').on('click', function () {
+			CitySearch.init();
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Message checklist: tick off the lines of a picked ingame message
+	 */
+	checklist_Btn: () => {
+		let btn = _menu.MakeButton('checklist');
+
+		let btn_sp = $('<span />').on('click', function () {
+			Checklist.init();
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Time limited ("ascended") buildings overview
+	 */
+	ascended_Btn: () => {
+		let btn = _menu.MakeButton('ascended');
+
+		let btn_sp = $('<span />').on('click', function () {
+			Ascended.init();
+		});
+
+		return btn.append(btn_sp, $('<span id="ascended-expired-count" class="hud-counter" style="display:none">0</span>'))
+			.ready(Ascended.UpdateMenuCounter);
+	},
+
 	inventory_Btn: () => {
 		let btn = _menu.MakeButton('inventory');
 
 		let btn_sp = $('<span />').on('click', function () {
 			InventoryOverview.init();
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Great building bonus overview (multi-tier rework)
+	 */
+	gbBonuses_Btn: () => {
+		let btn = _menu.MakeButton('gbBonuses');
+
+		let btn_sp = $('<span />').on('click', function () {
+			GBBonuses.init();
 		});
 
 		return btn.append(btn_sp);
