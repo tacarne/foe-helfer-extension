@@ -984,6 +984,14 @@ let CityBuildings = {
 						type: production.type,
 						resources: {}
 					};
+
+					// random productions: the server rolls the reward when the production starts and
+					// sends it with isRandom; the game hides it and shows the pool instead, the
+					// extension shows the rolled result (verified in-game: identical buildings carry
+					// different rolls, the collection matches the roll)
+					if (production.isRandom) {
+						resource.isRandom = true;
+					}
 					if (production.type === 'resources') {
 						resource.resources = production.playerResources.resources;
 
