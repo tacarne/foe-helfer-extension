@@ -289,6 +289,8 @@ let Calculator = {
 		let investmentSteps = [80, 90, 100, MainParser.ArkBonus],
 			customButtons = localStorage.getItem('CustomCalculatorButtons');
 
+        investmentSteps.push(Calculator.GetRealArcBonus());
+
 		if(customButtons) {
 			investmentSteps = [];
 			let bonuses = JSON.parse(customButtons);
@@ -359,7 +361,7 @@ let Calculator = {
 		let h = [];
 
 		let BestKurs = 999999,
-			arc = 1 + (MainParser.ArkBonus / 100),
+			arc = 1 + (Calculator.GetRealArcBonus() / 100),
 			ForderArc = 1 + (Calculator.ForderBonus / 100),
 			ShowBoost = Calculator.ShowBoostColumn();
 
@@ -543,7 +545,9 @@ let Calculator = {
 		h.push('<thead>' +
 			'<th>#</th>' +
 			'<th><span class="forgepoints" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Commitment')) + '"></span></th>' +
-			'<th>' + i18n('Boxes.Calculator.Profit') + '</th>');
+			'<th>' + i18n('Boxes.Calculator.Profit') + '</th>' +
+			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.MinSecure')) + '">' + i18n('Boxes.Calculator.MinSecure') + '</th>' +
+			'<th class="text-center" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Rate')) + '">' + i18n('Boxes.Calculator.Rate') + '</th>');
 			h.push('<th><span class="blueprint"' + GreatBuildings.BlueprintIconStyle(MainParser.CurrentGB.Tier) + ' title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.BPs')) + '"></span></th>');
 			h.push('<th><span class="medal" title="' + HTML.i18nTooltip(i18n('Boxes.Calculator.Meds')) + '"></span></th>');
 			if (ShowBoost)
@@ -683,6 +687,37 @@ let Calculator = {
 			else if (ForderStates[Rank] === 'LevelWarning' && SaveStates[Rank] === 'LevelWarning')
 				RowClass = 'bg-yellow';
 
+			// Min. sécurisé
+			let MinSecureText, MinSecureClass;
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit') {
+				MinSecureText = '-';
+				MinSecureClass = '';
+			} else if (SaveStates[Rank] === 'Self') {
+				MinSecureText = '-';
+				MinSecureClass = 'info';
+			} else if (SaveRankCosts[Rank] !== undefined) {
+				const SaveGewinn = FPRewards[Rank] - SaveRankCosts[Rank];
+				const GainHtml = SaveGewinn > 0
+					? ' <small class="success">(+' + HTML.Format(SaveGewinn) + ')</small>'
+					: (SaveGewinn < 0
+						? ' <small class="error">(' + HTML.Format(SaveGewinn) + ')</small>'
+						: '');
+				MinSecureText = '<span class="copy-fp clickable" data-copy="' + SaveRankCosts[Rank] + '">' + HTML.Format(SaveRankCosts[Rank]) + '</span>' + GainHtml;
+				MinSecureClass = (SaveStates[Rank] === 'Profit' ? 'success' : (SaveStates[Rank] === 'NegativeProfit' ? 'error' : ''));
+			} else {
+				MinSecureText = '-';
+				MinSecureClass = '';
+			}
+
+			// Taux (SaveRankCosts / FPNettoRewards * 100)
+			let KursText;
+			if (SaveStates[Rank] === 'NotPossible' || SaveStates[Rank] === 'WorseProfit' || SaveRankCosts[Rank] === undefined || FPNettoRewards[Rank] === 0) {
+				KursText = '-';
+			} else {
+				let KursVal = MainParser.round(SaveRankCosts[Rank] / FPNettoRewards[Rank] * 1000) / 10;
+				KursText = Calculator.FormatKurs(KursVal);
+			}
+
 			h.push(`<tr class="text-center ${RowClass}">
 				<td>
 					<strong class="${RankClass} td-tooltip" data-original-title="${HTML.i18nTooltip(RankTooltip.join('<br>'))}">${RankText}</strong>
@@ -693,6 +728,11 @@ let Calculator = {
 				<td>
 					<strong class="${GewinnClass} td-tooltip copy-fp" data-copy="${ForderGewinn}" data-original-title="${HTML.i18nTooltip(GewinnTooltip.join('<br>'))}">${GewinnText}</strong>
 				</td>
+				<td>
+    				 <strong class="${MinSecureClass}">${MinSecureText}</strong>
+    		    </td>
+                <td class="text-center">${KursText}</td>
+
 				<td> ${GreatBuildings.FormatBlueprintRewards(BPTierRewards[Rank], BPRewards[Rank])} </td>
 				<td> <small> ${HTML.Format(MedalRewards[Rank])} </small> </td>
 				${ShowBoost ? `<td> <small> ${HTML.Format(BoostRewards[Rank])} </small> </td>` : ''}
@@ -706,6 +746,40 @@ let Calculator = {
 			container: 'body'
 		});
 	},
+
+	/**
+	 * Formats the course
+	 *
+	 * @param Kurs
+	 */
+	FormatKurs: (Kurs) => {
+		if (Kurs === 0) {
+			return '-';
+		}
+		else {
+			return HTML.Format(Kurs) + '%';
+		}
+	},
+
+
+	GetRealArcBonus: () => {
+        const arcObject = Object.values(MainParser.CityMapData).find(
+            b => b.cityentity_id === 'X_FutureEra_Landmark1'
+        );
+
+        let arcBonus = 0;
+        if (arcObject.bonuses !== undefined && arcObject.bonuses.length > 0) {
+            for (let i = 0; i < arcObject.bonuses.length; i++) {
+                if (arcObject.bonuses[i].type === "contribution_boost") {
+                    arcBonus = arcObject.bonuses[i].value;
+                    break;
+                }
+            }
+        } else {
+            arcBonus = arcObject.bonus.value;
+        }
+        return arcBonus;
+    },
 
 
 	/**
