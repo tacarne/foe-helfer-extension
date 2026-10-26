@@ -76,6 +76,9 @@ let _menu = {
 	],
 	HiddenItems: [],
 
+	/** @type {string[]} menu items whose module doesn't work in the current browser */
+	BrowserUnsupported: navigator.userAgent.includes('Firefox') ? ['citySearch'] : [],
+
 
 	/**
 	 * Create the div holders and put them to the DOM
@@ -208,6 +211,9 @@ let _menu = {
 			if (HelperBeta.active) return true;
 			return !HelperBeta.menu.includes(e);
 		});
+
+		// Filter out functions the current browser can't run (e.g. building search in Firefox)
+		_menu.Items = _menu.Items.filter(e => !_menu.BrowserUnsupported.includes(e));
 
 		// Filter out duplicates
 		function unique(arr) {
