@@ -141,7 +141,9 @@ let Parts = {
 	LockExistingPlaces: true,
 	TrustExistingPlaces: false,
 
+	PlaceCount: 5, // reward places of the shown level-up (the prestige rework grants up to 7)
 	ArcPercents: [90, 90, 90, 90, 90],
+	ArcPercentsGold: null, // tier ArcPercents belongs to: true = gold, false = copper/classic, null = not loaded yet
 	Exts: [0, 0, 0, 0, 0],
 
 	//Settings Copybox
@@ -190,7 +192,6 @@ let Parts = {
 			HTML.Box({
 				id: 'OwnPartBox',
 				title: i18n('Boxes.OwnpartCalculator.Title'),
-				ask: i18n('Boxes.OwnpartCalculator.HelpLink'),
 				auto_close: true,
 				dragdrop: true,
 				minimize: true,
@@ -255,7 +256,7 @@ let Parts = {
 				});
 
 				Parts.ArcPercents = ArcPercents;
-				localStorage.setItem(Parts.GetStorageKey('ArcPercents', null), JSON.stringify(ArcPercents));
+				localStorage.setItem(Parts.ArcPercentsKey(), JSON.stringify(ArcPercents));
 
 				Parts.CalcBody(Parts.Level);
 			});
@@ -274,12 +275,12 @@ let Parts = {
 				let ArkBonus = parseFloat($(this).data('value'));
 				if (ArkBonus !== ArkBonus) ArkBonus = 0; //NaN => 0
 
-				for (let i = 0; i < 5; i++) {
+				for (let i = 0; i < Parts.PlaceCount; i++) {
 					Parts.ArcPercents[i] = ArkBonus;
 					$('.arc-percent-input').eq(i).val(ArkBonus);
 				}
 
-				localStorage.setItem(Parts.GetStorageKey('ArcPercents', null), JSON.stringify(Parts.ArcPercents));
+				localStorage.setItem(Parts.ArcPercentsKey(), JSON.stringify(Parts.ArcPercents));
 
 				Parts.CalcBody(Parts.Level);
 			});
@@ -541,9 +542,7 @@ let Parts = {
 
 		let PlayerID = Parts.CurrentGB.Entity['player_id'],
 			EntityID = Parts.CurrentGB.Entity['cityentity_id'],
-			CityEntity = MainParser.CityEntities[EntityID],
-			EraName = GreatBuildings.GetEraName(CityEntity['asset_id']),
-			Era = Technologies.Eras[EraName];
+			CityEntity = MainParser.CityEntities[EntityID];
 
 		let Total; // Total FP of the current level
 
@@ -561,8 +560,7 @@ let Parts = {
 
 		// Restore Default settings
 		if (Parts.FirstCycle) {
-			let SavedArcPercents = localStorage.getItem(Parts.GetStorageKey('ArcPercents', null));
-			if (SavedArcPercents !== null) Parts.ArcPercents = JSON.parse(SavedArcPercents);
+			Parts.ArcPercentsGold = null;
 
 			let SavedCopyOwnPlayerName = localStorage.getItem(Parts.GetStorageKey('CopyOwnPlayerName', null));
 			if (SavedCopyOwnPlayerName !== null) {
@@ -606,6 +604,18 @@ let Parts = {
 			}
 		}
 
+		// arc percents of the tier of the shown level-up, gold tier level-ups have their own
+		const IsGold = Parts.IsGoldLevel();
+		Parts.ArcPercents = Parts.GetArcPercents(IsGold);
+		Parts.ArcPercentsGold = IsGold;
+
+		// reward places of this level-up: one per ranking row with a reward, at least the classic five;
+		// the per place settings follow the count (saved values of older versions only cover five)
+		Parts.PlaceCount = (Parts.IsNextLevel ? GreatBuildings.GetPlaceCount(EntityID, Parts.Level) : Parts.GetPlaceCount(Parts.CurrentGB.Rankings));
+		Parts.ArcPercents = Parts.FillPlaces(Parts.ArcPercents, Parts.PlaceCount, Parts.ArcPercents[Parts.ArcPercents.length - 1] ?? 90);
+		Parts.Exts = Parts.FillPlaces(Parts.Exts, Parts.PlaceCount, 0);
+		Parts.CopyPlaces = Parts.FillPlaces(Parts.CopyPlaces, Parts.PlaceCount, false);
+
 		if (PlayerID !== Parts.LastPlayerID || EntityID !== Parts.LastEntityID) {
 			Parts.CopyModeAuto = true;
 			Parts.CopyModeAll = false;
@@ -615,7 +625,7 @@ let Parts = {
 		if (PlayerID !== Parts.LastPlayerID || EntityID !== Parts.LastEntityID || Parts.Level !== Parts.LastLevel) {
 			Parts.LockExistingPlaces = true;
 			Parts.TrustExistingPlaces = false;
-			for (let i = 0; i < 5; i++) Parts.Exts[i] = 0;
+			for (let i = 0; i < Parts.Exts.length; i++) Parts.Exts[i] = 0;
 			Parts.CopyIncludeLevelString = false;
 		}
 
@@ -640,9 +650,9 @@ let Parts = {
 			Rest = Total, // Verbleibende FP: Counter während Berechnung
 			AlreadyPaid = 0; // Bereits gezahlter Anteil für aktuellen Platz (Fremde LG)
 
-		Parts.PlaceAvailables = [false, false, false, false, false]; // Wird auf true gesetz, wenn auf einem Platz noch eine (nicht externe) Zahlung einzuzahlen ist (wird in Spalte Einzahlen angezeigt)
-		Parts.DangerPlaces = [0, 0, 0, 0, 0]; // Feld mit Dangerinformationen. Wenn > 0, dann die gefährdeten FP
-		Parts.LeveltLG = [false, false, false, false, false];
+		Parts.PlaceAvailables = Array(Parts.PlaceCount).fill(false); // true when a place still awaits a (non external) payment (shown in the deposit column)
+		Parts.DangerPlaces = Array(Parts.PlaceCount).fill(0); // danger information per place: > 0 = the endangered FP
+		Parts.LeveltLG = Array(Parts.PlaceCount).fill(false);
 		Parts.Maezens = [];
 
 		if (Parts.CurrentGB.IsPreviousLevel) {
@@ -658,7 +668,7 @@ let Parts = {
 			Parts.Level = 0;
 		}
 
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < Parts.PlaceCount; i++) {
 			arcs[i] = ((parseFloat(Parts.ArcPercents[i]) + 100) / 100);
 		}
 
@@ -688,7 +698,7 @@ let Parts = {
 				Parts.Maezens[Place] = CurrentMaezen;
 				if (Parts.Maezens[Place] === undefined) Parts.Maezens[Place] = 0;
 
-				if (Place < 5) {
+				if (Place < Parts.PlaceCount) {
 					if (Parts.CurrentGB.Rankings[i]['reward'] !== undefined) {
 						let FPCount = (Parts.CurrentGB.Rankings[i]['reward']['strategy_point_amount'] !== undefined ? parseInt(Parts.CurrentGB.Rankings[i]['reward']['strategy_point_amount']) : 0);
 						if (FPCount > 0) {
@@ -725,7 +735,7 @@ let Parts = {
 			}
 
 			// Previous level and spot not taken? => Fill with zero
-			for (let i = Parts.Maezens.length; i < 5; i++) {
+			for (let i = Parts.Maezens.length; i < Parts.PlaceCount; i++) {
 				Parts.Maezens[i] = 0;
 				FPRewards[i] = 0;
 				MedalRewards[i] = 0;
@@ -734,12 +744,11 @@ let Parts = {
 			}
 		}
 		else {
-			let P1 = GreatBuildings.GetP1(Era, Parts.Level) || 0;
-
-			Parts.Maezens = [0, 0, 0, 0, 0];
-			FPRewards = GreatBuildings.GetMaezen(P1, Parts.ArcPercents)
-			MedalRewards = [0, 0, 0, 0, 0];
-			BPRewards = [0, 0, 0, 0, 0];
+			// future level: rewards from the reward table (classic) or the level costs (prestige rework)
+			Parts.Maezens = Array(Parts.PlaceCount).fill(0);
+			FPRewards = GreatBuildings.GetPatronRewards(EntityID, Parts.Level, Parts.ArcPercents, Total) || Array(Parts.PlaceCount).fill(0);
+			MedalRewards = Array(Parts.PlaceCount).fill(0);
+			BPRewards = Array(Parts.PlaceCount).fill(0);
 			BPTierRewards = [];
 		}
 
@@ -753,7 +762,7 @@ let Parts = {
 
 		for (let i = 0; i < Parts.Maezens.length; i++) {
 			if(Parts.Maezens[i] === 0) {
-				Parts.Maezens.length = Math.max(i, 5);
+				Parts.Maezens.length = Math.max(i, Parts.PlaceCount);
 				break;
 			}
 
@@ -762,7 +771,7 @@ let Parts = {
 
 		Rest -= ExtTotal;
 
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < Parts.PlaceCount; i++) {
 			if (FPRewards[i] <= Parts.Maezens[i] || Rest <= Parts.Maezens[i]) {
 				if (Parts.LockExistingPlaces) { //Bestehende Einzahlung absichern
 					let NextMaezen = Parts.Maezens[i + 1] !== undefined ? Parts.Maezens[i + 1] : 0;
@@ -800,21 +809,12 @@ let Parts = {
 			Rest -= Eigens[i] + Parts.Maezens[i];
 		}
 
-		if(Rest>0) Eigens[5] = Rest;
+		if(Rest>0) Eigens[Parts.PlaceCount] = Rest;
 
 		EigenTotal = EigenStart;
 		for (let i = 0; i < Eigens.length; i++) {
 			EigenTotal += Eigens[i];
 		}
-
-		for (let i = FPRewards.length; i < Parts.Maezens; i++)
-			FPRewards[i] = 0;
-
-		for (let i = MedalRewards.length; i < Parts.Maezens; i++)
-			MedalRewards[i] = 0;
-
-		for (let i = BPRewards.length; i < Parts.Maezens; i++)
-			BPRewards[i] = 0;
 
 		let PlayerName = undefined;
 		if (PlayerID === ExtPlayerID) {
@@ -824,13 +824,14 @@ let Parts = {
 			PlayerName = PlayerDict[PlayerID]['PlayerName'];
 		}
 
-		for (let i = 0; i < 5; i++) {
+		Parts.CurrentMaezens = [];
+		for (let i = 0; i < Parts.PlaceCount; i++) {
 			Parts.CurrentMaezens[i] = Parts.Maezens[i] | 0;
 		}
 		Parts.RemainingOwnPart = EigenTotal - EigenStart;
 
 		Parts.SafePlaces = [];
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < Parts.PlaceCount; i++) {
 			if (Eigens[i] > 0) break;
 
 			if (Parts.PlaceAvailables[i])
@@ -894,17 +895,17 @@ let Parts = {
 
 			h.push(Parts.Level + ' &rarr; ' + (parseInt(Parts.Level) + 1));
 
-			if (GreatBuildings.GetP1(Era, Parts.Level + 1))
+			if (GreatBuildings.GetPatronRewards(EntityID, Parts.Level + 1) !== undefined)
 				h.push(' <button class="btn btn-slim btn-set-level" data-value="' + (Parts.Level + 1) + '">&gt;</button>');
 		}
 		h.push('</div>');
 		h.push('</div>');
 
+		if (MainParser.HasGoldTier()) h.push(Calculator.TierMarker(IsGold));
 		h.push('<span class="btn-group">');
-		// different arc bonus-buttons, the own arc bonus is always one of them
-		let customButtons = localStorage.getItem('CustomPartCalcButtons'),
-			investmentSteps = Calculator.SettingsSanitizeButtons(customButtons ? JSON.parse(customButtons) : Parts.DefaultButtons)
-				.map(bonus => (bonus === 'ark' ? MainParser.ArkBonus : bonus));
+		// different arc bonus-buttons (own list for gold tier level-ups), the own arc bonus is always one of them
+		let investmentSteps = Calculator.GetButtons('CustomPartCalcButtons', Parts.DefaultButtons, IsGold)
+				.map(bonus => (bonus === 'ark' ? MainParser.GetArkBonus(IsGold ? 'gold' : null) : bonus)); // gold tier level-ups use the gold contribution boost
 
 		investmentSteps = investmentSteps.filter((item, index) => investmentSteps.indexOf(item) === index);
 		investmentSteps.sort((a, b) => a - b);
@@ -945,7 +946,7 @@ let Parts = {
 			return ret;
 		}
 
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < Parts.PlaceCount; i++) {
 			EigenCounter += Eigens[i];
 
 			// owner contributions
@@ -1028,14 +1029,14 @@ let Parts = {
 		}
 
 		let MaezenRest = 0;
-		for (let i = 5; i < Parts.Maezens.length; i++) {
+		for (let i = Parts.PlaceCount; i < Parts.Maezens.length; i++) {
 			MaezenRest += Parts.Maezens[i];
 		}
 
-		// any contribution over 5th place
+		// any contribution below the last reward place
 		if (MaezenRest > 0) {
 			h.push('<tr>');
-			h.push('<td>#6' + (Parts.Maezens.length > 6 ? ('-' + Parts.Maezens.length) : '') + '</td>');
+			h.push('<td>#' + (Parts.PlaceCount + 1) + (Parts.Maezens.length > Parts.PlaceCount + 1 ? ('-' + Parts.Maezens.length) : '') + '</td>');
 			h.push('<td class="text-center">-</td>');
 			h.push('<td class="text-center"><strong class="info">' + HTML.Format(MaezenRest) + '</strong></td>');
 			if (!minView) h.push('<td colspan="4"></td>');
@@ -1043,10 +1044,10 @@ let Parts = {
 		}
 
 		// rest to pay for the owner
-		if (Eigens[5] > 0) {
-			EigenCounter += Eigens[5];
+		if (Eigens[Parts.PlaceCount] > 0) {
+			EigenCounter += Eigens[Parts.PlaceCount];
 			h.push('<tr>');
-			let OwnPartRestText = opt(Eigens[5], EigenCounter);
+			let OwnPartRestText = opt(Eigens[Parts.PlaceCount], EigenCounter);
 			h.push('<td>' + i18n('Boxes.OwnpartCalculator.OwnPart') + '</td>');
 			h.push('<td class="text-center ' + (PlayerID === ExtPlayerID ? 'success' : 'yellow-text') + '">' + OwnPartRestText + '</td>');
 			h.push('<td colspan="5"></td>');
@@ -1142,6 +1143,78 @@ let Parts = {
 			$('.OwnPartBoxBackgroundBody').fadeToggle();
 			$('#OwnPartBox').toggleClass('gbSettingsOpen');
 		});
+	},
+
+
+	/**
+	 * Number of reward places of a level-up: one per ranking row carrying a reward
+	 * (the prestige rework grants up to 7), at least the classic five.
+	 *
+	 * @param {?Object[]} Rankings GreatBuildingRankingRow[] of the level
+	 * @returns {number}
+	 */
+	GetPlaceCount: (Rankings) => {
+		const Rewarded = (Array.isArray(Rankings) ? Rankings : []).filter(row => row?.['reward'] && row['rank'] > 0).length;
+
+		return Math.min(Math.max(Rewarded, 5), 10);
+	},
+
+
+	/**
+	 * Extends a per place array to the given number of places (surplus entries are kept).
+	 *
+	 * @param {Array} Values Per place values
+	 * @param {number} Count Number of places
+	 * @param {*} Fill Value for the missing places
+	 * @returns {Array}
+	 */
+	FillPlaces: (Values, Count, Fill) => {
+		const Result = (Array.isArray(Values) ? Values.slice() : []);
+		while (Result.length < Count) Result.push(Fill);
+
+		return Result;
+	},
+
+
+	/**
+	 * Whether a level-up of the opened great building belongs to the gold tier of
+	 * the prestige rework: the open level by the tier of the building, a browsed
+	 * level by the tier metadata.
+	 *
+	 * @param {number} [Level] Level the level-up starts from, default: the shown one
+	 * @returns {boolean}
+	 */
+	IsGoldLevel: (Level = Parts.Level) => {
+		const Entity = Parts.CurrentGB.Entity,
+			Tier = (Level !== Entity['level'] ? MainParser.GetGBTierForLevel(MainParser.CityEntities[Entity['cityentity_id']], Level) : null);
+
+		return MainParser.IsGoldTier(Tier || Parts.CurrentGB.Tier);
+	},
+
+
+	/**
+	 * localStorage key of the arc percents per place of a tier.
+	 *
+	 * @param {boolean} [Gold] Gold tier, default: the tier of the shown level-up
+	 * @returns {string} The localStorage key
+	 */
+	ArcPercentsKey: (Gold = Parts.ArcPercentsGold) => Parts.GetStorageKey('ArcPercents' + (Gold ? 'Gold' : ''), null),
+
+
+	/**
+	 * Arc percents per place of a tier: the ones in use when the shown level-up
+	 * belongs to it, otherwise the saved ones. Without saved values gold tier
+	 * level-ups start with the own gold contribution boost, copper ones with 90%.
+	 *
+	 * @param {boolean} Gold Gold tier
+	 * @returns {number[]}
+	 */
+	GetArcPercents: (Gold) => {
+		if (Gold === Parts.ArcPercentsGold) return Parts.ArcPercents;
+
+		const Saved = localStorage.getItem(Parts.ArcPercentsKey(Gold));
+
+		return (Saved !== null ? JSON.parse(Saved) : Array(5).fill(Gold ? MainParser.ArkBonusGold : 90));
 	},
 
 

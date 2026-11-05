@@ -234,7 +234,7 @@ GetFights = () =>{
 		setTimeout(()=>{ MainParser.CityEntityBuilder(buildingUrls) },500);
 	});
 
-	// Prestige tiers of the great buildings (copper / silver / gold): level range per tier
+	// Prestige tiers of the great buildings (copper / gold, silver was dropped by the game): level range per tier
 	FoEproxy.addMetaHandler('great_building_tiers', (xhr, postData) => {
 		try {
 			MainParser.GreatBuildingTiers = JSON.parse(xhr.responseText || '[]');
@@ -673,7 +673,7 @@ GetFights = () =>{
 
 	// Required by the kits
 	FoEproxy.addHandler('InventoryService', 'getItems', (data, postData) => {
-		MainParser.UpdateInventory(data.responseData);
+		MainParser.UpdateInventory(data.responseData, true);
 	});
 
 
@@ -921,12 +921,17 @@ GetFights = () =>{
 
 		MainParser.CurrentGB.Entity = CityMapEntity.responseData[0];
 		MainParser.CurrentGB.Rankings = Rankings;
+		GreatBuildings.VerifyReworkCosts(MainParser.CurrentGB.Entity['cityentity_id'], MainParser.CurrentGB.Entity['level'], MainParser.CurrentGB.Entity['state']?.['forge_points_for_level_up']);
 		MainParser.CurrentGB.OverviewRow = MainParser.GreatBuildingsOverview[MainParser.CurrentGB.Entity['player_id'] + '_' + MainParser.CurrentGB.Entity['id']];
 
-		// Derive the current building tier (copper/silver/gold) from the rewards.
+		// Derive the current building tier (copper/gold) like the game: from the tier metadata and the
+		// level, with the overview row and the blueprint rewards as fallback.
 		// While level scrolling the rankings belong to a different level, keep the tier untouched then.
 		if (!IsLevelScroll) {
-			MainParser.CurrentGB.Tier = MainParser.GetGBTierFromRankings(Rankings);
+			const OverviewRow = MainParser.CurrentGB.OverviewRow;
+			MainParser.CurrentGB.Tier = MainParser.GetGBTierForLevel(MainParser.CityEntities[MainParser.CurrentGB.Entity['cityentity_id']], MainParser.CurrentGB.Entity['level'])
+				|| ((OverviewRow && OverviewRow['level'] === MainParser.CurrentGB.Entity['level']) ? OverviewRow['currentTier'] : null)
+				|| MainParser.GetGBTierFromRankings(Rankings);
 		}
 		Parts.IsPreviousLevel = IsPreviousLevel;
 
@@ -1104,7 +1109,8 @@ let MainParser = {
 
 	// Unlocked extensions
 	Quests: null,
-	ArkBonus: 0,
+	ArkBonus: 0, // contribution boost (copper tier levels of the prestige rework, all levels on classic worlds)
+	ArkBonusGold: 0, // contribution boost of the gold tier levels (contribution_boost_gold)
 	Inventory: {},
 
 	// all buildings additional data
@@ -1626,7 +1632,7 @@ let MainParser = {
 		if (Settings.GetSetting('ShowLinks')) {
 			let GuildLink = HTML.i18nReplacer(GuildLinkFormat, { 'world': WorldId.toUpperCase(), 'guildid': GuildID });
 			if (localStorage.getItem('linkSite') === 'siteForgedb')
-				GuildLink = HTML.i18nReplacer(GuildLinkFormat2, { 'server': ExtWorld.toLowerCase().replace(/[0-9]/g, ''), 'world': ExtWorld.toLowerCase(), 'guildid': GuildID });
+				GuildLink = HTML.i18nReplacer(GuildLinkFormat2, { 'server': WorldId.toLowerCase().replace(/[0-9]/g, ''), 'world': WorldId.toLowerCase(), 'guildid': GuildID });
 
 			return `<a class="external-link game-cursor" href="${GuildLink}" target="_blank">${HTML.escapeHtml(GuildName)} ${LinkIcon}</a>`;
 		}
@@ -1949,7 +1955,7 @@ let MainParser = {
 	 * @returns {?Object} GreatBuildingTier enum, e.g. {value: 'copper'}, or null
 	 */
 	/**
-	 * Level ranges of the prestige tiers as {starts: {copper: 1, silver: 81, ...}, ends: {copper: 80, ...}}.
+	 * Level ranges of the prestige tiers as {starts: {copper: 1, gold: 101, ...}, ends: {copper: 100, ...}}.
 	 * Uses the game's great_building_tiers metadata when loaded, otherwise the first level with a
 	 * non-zero bonus value per tier from the building's `bonuses` metadata.
 	 *
@@ -1983,11 +1989,115 @@ let MainParser = {
 	},
 
 
+	/**
+	 * Tier of a great building at a level like the game's GreatBuildingTierModel.getTierForLevel:
+	 * the tier whose metadata level range contains the level, capped at the building's maxTier.
+	 * The ranges overlap (beta 11/2026: copper 1-200, gold 101-∞), the game checks them by
+	 * descending start level and takes the first match, i.e. the highest tier.
+	 * Only the game's great_building_tiers metadata is used, without it the result is null.
+	 *
+	 * @param {?Object} meta City entity metadata of the great building
+	 * @param {number} Level Level the tier is looked up for (the level a level-up starts from)
+	 * @returns {{value: string}|null} GreatBuildingTier enum, e.g. {value: 'gold'}, or null
+	 */
+	GetGBTierForLevel: (meta, Level) => {
+		if (!meta || !Array.isArray(meta['bonuses']) || meta['bonuses'].length === 0) return null; // classic world
+		if (!Array.isArray(MainParser.GreatBuildingTiers) || MainParser.GreatBuildingTiers.length === 0) return null;
+
+		const TierOrder = { copper: 1, silver: 2, gold: 3 },
+			MaxTier = meta['maxTier']?.['value'] || meta['maxTier'] || 'gold';
+		let Tier = null;
+
+		const Rows = MainParser.GreatBuildingTiers.slice().sort((a, b) => (b['startLevel'] || 0) - (a['startLevel'] || 0));
+		for (const row of Rows) {
+			const value = row?.['tier']?.['value'] || row?.['tier'];
+			if (!value || Level < row['startLevel'] || Level > row['endLevel']) continue;
+			Tier = value;
+			break;
+		}
+		if (!Tier) return null;
+
+		if ((TierOrder[Tier] || 0) > (TierOrder[MaxTier] || 0)) Tier = MaxTier;
+
+		return { __enum__: 'GreatBuildingTier', value: Tier };
+	},
+
+
+	/**
+	 * Contribution boost that applies to a great building level-up: the gold tier uses
+	 * the separate contribution_boost_gold, every other tier (and classic worlds) the classic boost.
+	 *
+	 * @param {?Object|string} Tier GreatBuildingTier enum ({value: 'gold'}) or the plain tier name
+	 * @returns {number} Boost in percent
+	 */
+	GetArkBonus: (Tier) => (MainParser.IsGoldTier(Tier) ? MainParser.ArkBonusGold : MainParser.ArkBonus),
+
+
+	/**
+	 * Whether a tier is the gold tier of the prestige rework.
+	 *
+	 * @param {?Object|string} Tier GreatBuildingTier enum ({value: 'gold'}) or the plain tier name
+	 * @returns {boolean}
+	 */
+	IsGoldTier: (Tier) => ((Tier && typeof Tier === 'object' ? Tier['value'] : Tier) === 'gold'),
+
+
+	/**
+	 * Whether the great buildings of this world have a gold tier (prestige rework): its
+	 * level-ups use an own contribution boost, so the calculators keep own percent values for them.
+	 *
+	 * @returns {boolean}
+	 */
+	HasGoldTier: () => ((MainParser.GreatBuildingTiers || []).some(row => MainParser.IsGoldTier(row?.['tier'])) && GreatBuildings.HasReworkData()),
+
+
+	/**
+	 * Bonuses of a placed great building. Supports the classic single `bonus` field and the
+	 * `bonuses` array of the prestige rework (classic worlds already carry `bonuses` as an EMPTY
+	 * array next to the filled field). The placed entries only carry type and value, therefore the
+	 * targeted feature (battleground, guild_expedition, ...), the multiplier flag and the tier are
+	 * taken over from the matching metadata entry (same type, n-th occurrence).
+	 *
+	 * @param {Object} entity The placed city entity
+	 * @returns {Object[]} Bonus list, empty for buildings without bonuses
+	 */
+	GetGBBonuses: (entity) => {
+		const placed = (entity?.['bonuses']?.length ? entity['bonuses'] : (entity?.['bonus'] ? [entity['bonus']] : []));
+		if (placed.length === 0) return [];
+
+		const metaTiers = MainParser.CityEntities?.[entity['cityentity_id']]?.['bonuses'];
+		if (!Array.isArray(metaTiers) || metaTiers.length === 0) return placed;
+
+		const metaBonuses = metaTiers.flatMap(tier => (tier['bonuses'] || []).map(bonus => ({ ...bonus, tier: tier['tier'] }))),
+			seen = {};
+
+		return placed.map(bonus => {
+			const index = (seen[bonus['type']] = (seen[bonus['type']] || 0) + 1),
+				meta = metaBonuses.filter(entry => entry['type'] === bonus['type'])[index - 1];
+			if (!meta) return bonus;
+
+			return {
+				...bonus,
+				targetedFeature: bonus['targetedFeature'] || meta['targetedFeature'] || 'all',
+				isBonusMultiplier: (bonus['isBonusMultiplier'] ?? meta['isBonusMultiplier'] ?? false),
+				bonusCategory: bonus['bonusCategory'] || meta['bonusCategory'],
+				tier: meta['tier'],
+			};
+		});
+	},
+
+
+	/**
+	 * Determines the GB tier (copper/gold) from the highest blueprint reward tier in the rankings.
+	 *
+	 * @param {Object[]} Rankings
+	 * @returns {{value: string}|null}
+	 */
 	GetGBTierFromRankings: (Rankings) => {
 		const TierOrder = { copper: 1, silver: 2, gold: 3 };
 		let Tier = null;
 
-		for (let row of (Rankings || [])) {
+		for (let row of (Array.isArray(Rankings) ? Rankings : [])) {
 			for (let bp of (row?.reward?.blueprintRewards || [])) {
 				if (bp?.tier?.value && (!Tier || (TierOrder[bp.tier.value] || 0) > (TierOrder[Tier.value] || 0))) {
 					Tier = bp.tier;
@@ -2012,7 +2122,7 @@ let MainParser = {
 				name: meta?.['name'],
 			}
 
-		// Prestige rework (copper / silver / gold): the API stores these worlds in separate tables
+		// Prestige rework (copper / gold): the API stores these worlds in separate tables
 		if (meta && meta['strategy_points_for_upgrade'] !== undefined && Array.isArray(meta['bonuses']) && meta['bonuses'].length > 0) {
 			const tiers = MainParser.GetGBTierRanges(meta);
 
@@ -2035,12 +2145,13 @@ let MainParser = {
 
 
 	/**
-	 * Determine ark bonus globally
+	 * Determine ark bonus globally from the limited bonuses (classic worlds)
 	 *
 	 * @param LimitedBonuses
 	 */
 	SetArkBonus: (LimitedBonuses) => {
-		let ArkBonus = 0;
+		let ArkBonus = 0,
+			ArkBonusGold = 0;
 
 		for (let i in LimitedBonuses) {
 
@@ -2049,24 +2160,34 @@ let MainParser = {
 			if (LimitedBonuses[i].type === 'contribution_boost') {
 				ArkBonus += LimitedBonuses[i].value;
 			}
-		}
-
-		MainParser.updateArkBonus(ArkBonus,"Limited Bonuses");
-	},
-
-
-	SetArkBonus2: () => {
-		let ArkBonus = 0;
-
-		for (let i of Object.values(MainParser.CityMapData)) {
-			// classic single `bonus` field or non-empty `bonuses` array of the multi-tier rework;
-			// a single value-less entry must not turn the sum into NaN (updateArkBonus drops NaN silently)
-			for (const bonus of (i?.bonuses?.length ? i.bonuses : (i?.bonus ? [i.bonus] : []))) {
-				if (bonus?.type === "contribution_boost") ArkBonus += (parseFloat(bonus.value) || 0);
+			else if (LimitedBonuses[i].type === 'contribution_boost_gold') {
+				ArkBonusGold += LimitedBonuses[i].value;
 			}
 		}
 
-		MainParser.updateArkBonus(ArkBonus,"City Map");
+		MainParser.updateArkBonus(ArkBonus, "Limited Bonuses");
+		MainParser.updateArkBonus(ArkBonusGold, "Limited Bonuses", 'gold');
+	},
+
+
+	/**
+	 * Determine both contribution boosts from the placed great buildings of the city
+	 * (the prestige rework grants contribution_boost_gold for gold tier level-ups).
+	 */
+	SetArkBonus2: () => {
+		let ArkBonus = 0,
+			ArkBonusGold = 0;
+
+		for (let i of Object.values(MainParser.CityMapData)) {
+			// a single value-less entry must not turn the sum into NaN (updateArkBonus drops NaN silently)
+			for (const bonus of MainParser.GetGBBonuses(i)) {
+				if (bonus?.type === "contribution_boost") ArkBonus += (parseFloat(bonus.value) || 0);
+				else if (bonus?.type === "contribution_boost_gold") ArkBonusGold += (parseFloat(bonus.value) || 0);
+			}
+		}
+
+		MainParser.updateArkBonus(ArkBonus, "City Map");
+		MainParser.updateArkBonus(ArkBonusGold, "City Map", 'gold');
 	},
 
 
@@ -2077,11 +2198,14 @@ let MainParser = {
 	 *
 	 * @param {number} ArkBonus - The new ArkBonus value to set.
 	 * @param {string} Source - A string representing the source or origin of the update.
+	 * @param {string} [Type='basic'] - 'gold' updates the gold tier boost (MainParser.ArkBonusGold)
 	 */
-	updateArkBonus:(ArkBonus, Source)=>{
-		if (ArkBonus > MainParser.ArkBonus) {
-			if (MainParser.ArkBonus > 0) {
-				const s = `SetArkBonus: updated ArkBonus from ${MainParser.ArkBonus} to ${ArkBonus} by ${Source}`;
+	updateArkBonus:(ArkBonus, Source, Type = 'basic')=>{
+		const Field = (Type === 'gold' ? 'ArkBonusGold' : 'ArkBonus');
+
+		if (ArkBonus > MainParser[Field]) {
+			if (MainParser[Field] > 0) {
+				const s = `SetArkBonus: updated ${Field} from ${MainParser[Field]} to ${ArkBonus} by ${Source}`;
 				if (devMode === 'true') {
 					HTML.ShowToastMsg({
 						show: true,
@@ -2092,7 +2216,7 @@ let MainParser = {
 					});
 				}
 			}
-			MainParser.ArkBonus = ArkBonus;
+			MainParser[Field] = ArkBonus;
 		}
 	},
 
@@ -2205,45 +2329,44 @@ let MainParser = {
 
 
 	/**
-	 * Updates the inventory
+	 * Stores inventory items by their id.
 	 *
-	 * @param Items
+	 * @param {Object[]} Items
+	 * @param {boolean} [replace=false] true for a full sync (getItems): items missing from the list are gone
 	 */
-	UpdateInventory: (Items) => {
-		//MainParser.Inventory = {};
-		for (let i = 0; i < Items.length; i++) {
-			let ID = Items[i]['id'];
-			MainParser.Inventory[ID] = Items[i];
+	UpdateInventory: (Items, replace = false) => {
+		if (replace) MainParser.Inventory = {};
+		for (const Item of Items || []) {
+			MainParser.Inventory[Item.id] = Item;
 		}
 		FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
 	/**
-	 * Updates the inventory
+	 * Stores a single inventory item.
 	 *
-	 * @param Item
+	 * @param {Object} Item
 	 */
 	UpdateInventoryItem: (Item) => {
-		let ID = Item['id'];
-		MainParser.Inventory[ID] = Item;
+		MainParser.Inventory[Item.id] = Item;
 		FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
 	/**
-	 * Applies an InventoryItemUpdate delta ({id, amount}) to a known inventory entry.
-	 * Sent e.g. after item store purchases; unknown items get picked up by the next full sync.
+	 * Applies an InventoryItemUpdate ({id, amount}) to a known inventory entry; amount is the new stock.
+	 * The server omits zero values, so a used-up stack arrives without amount (the game removes the item then).
+	 * Unknown items get picked up by the next full sync.
 	 *
-	 * @param {{id: number, amount: number}|{id: number, amount: number}[]} update
+	 * @param {{id: number, amount?: number}|{id: number, amount?: number}[]} update
 	 */
 	UpdateInventoryItemAmount: (update) => {
 		const updates = Array.isArray(update) ? update : [update];
 		let changed = false;
 		for (const upd of updates) {
-			if (upd?.id === undefined || upd.amount === undefined) continue;
-			if (!MainParser.Inventory[upd.id]) continue;
-			MainParser.Inventory[upd.id].inStock = upd.amount;
+			if (upd?.id === undefined || !MainParser.Inventory[upd.id]) continue;
+			MainParser.Inventory[upd.id].inStock = upd.amount || 0;
 			changed = true;
 		}
 		if (changed) FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
@@ -2251,18 +2374,14 @@ let MainParser = {
 
 
 	/**
-	 * Updates the inventory
+	 * Applies a legacy getItemAmount response ([id, amount]) to a known inventory entry.
 	 *
-	 * @param Item
+	 * @param {number[]} Item
 	 */
-	UpdateInventoryAmount: (Item) => {
-			let ID = Item[0],
-			Amount = Item[1];
-			try {
-				MainParser.Inventory[ID].inStock = Amount;
-			} catch (e) {
-			}
-			FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
+	UpdateInventoryAmount: ([ID, Amount] = []) => {
+		if (!MainParser.Inventory[ID]) return;
+		MainParser.Inventory[ID].inStock = Amount || 0;
+		FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
@@ -2573,7 +2692,6 @@ let MainParser = {
 				HTML.Box({
 					id: 'inactivesSettingsBox',
 					title: i18n('Boxes.InactivesSettings.Title'),
-					//ask: i18n('Boxes.AuctionSettings.HelpLink'),
 					auto_close: true,
 					dragdrop: true,
 					minimize: true,

@@ -299,7 +299,6 @@ let Allies = {
 			HTML.Box({
 				id: 'AllyList',
 				title: i18n('Boxes.AllyList.Title'),
-				ask: i18n('Boxes.AllyList.HelpLink'),
 				auto_close: true,
 				dragdrop: true,
 				minimize: true,
@@ -394,6 +393,7 @@ let Allies = {
 				for (let r of rs) {
 					if (!r.ally && !r.rarity) {
 						r.ally = x;
+						return;
 					}
 				}
 			}

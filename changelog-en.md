@@ -1,5 +1,82 @@
 ## Extension Changelog
 
+##### 4.8.7.0
+**Update**
+
+- GB Calculator, GB Cost Calc, Power leveling and GB Investment Overview: on worlds with the prestige update gold levels have their own percentages – separately configurable percent buttons (🟤 copper, 🟡 gold) and a separately remembered rate per tier; gold starts with your gold contribution boost
+
+---
+
+##### 4.8.6.0
+**Update**
+
+- GB Calculator, Power leveling and GB Investment Overview: on worlds with the prestige update the costs and patron rewards of upcoming levels match the game exactly, far beyond level 100 as well
+- Power leveling: gold levels show all 7 reward places
+- GB Bonus Overview: the new gold bonuses appear with their name, icon and percentage like in the game
+- GB Bonus Overview and GB Investment Overview: great buildings of other players now show their current bonus value between the breakpoints as well (accurate to 1) instead of a minimum only
+
+**Bugfixes**
+
+- Infoboard: the "GB was leveled" message states the correct reward for the reached place on worlds with the prestige update
+- Power leveling: on worlds with the prestige update the double collection uses the new FP productions per level
+- GB Investment Overview: on worlds with the prestige update the gain of the next level matches the new bonus values
+
+---
+
+##### 4.8.5.0
+**Update**
+
+- GB Bonus Overview and GB Investment Overview: a player selection shows the great buildings of other players in both boxes, once their GB overview has been opened in the game
+- GB Bonus Overview and GB Investment Overview: opening a great building of another player in the game gives both boxes its exact bonus values instead of the minimum
+- City overview: the QI city can now be sent to the city planner on foe-helper.com, just like the main city
+
+**Bugfixes**
+
+- QI overview: without a loaded ranking a hint is shown instead of an empty box, members without a record in the round show a hint as well
+
+---
+
+##### 4.8.4.0
+**Update**
+
+- GB Calculator: shows all reward places of the current level, up to 7 on worlds with prestige tiers, including the copy function and the place selection
+- Contribution boost: the gold contribution boost is detected and used for gold tier levels in the GB Calculator, GB Cost Calc, Investments and Infoboard
+- Great Buildings: the new prestige bonuses (multipliers and bonuses limited to Guild Battlegrounds, GE or QI) count in the boosts, the building efficiency, the GB investments and the GB bonus overview
+- Help: almost every box now links to its own help page in the docs via the “?” icon; missing languages will be added step by step
+- News: a box in the top right corner shows what is new in the helper after the game start; close it once, the settings bring it back any time
+
+**Bugfixes**
+
+- Allies: allies were listed twice and their boosts counted twice
+- Guild Battlegrounds and QI: no more duplicate snapshots (too high daily values), day rows in the player details expand again, QI round selection works again
+- Discord: automatic sending stops when the GBG box is closed, deleted templates no longer cause errors
+- Guild treasury: the export setting was always switched off on saving, “Reset” in the export window failed with an error
+- Notes: your own player disappeared from the player list; without "Upload/Send data to foe-helper.com" no request is sent anymore
+- "API Token missing" now also appears with notifications switched off, the link there and in the settings points to the new docs
+- Fixed crashes in Productions, Efficiency, Reconstruction list, Castle System, GE, Scouting, Incidents, Battle Potions and Alerts
+- City overview: total area and share of streets are calculated correctly
+- Inventory and kits: filters stay visible after reopening, invalid search patterns no longer break the filter
+- Settings: number fields also save via the arrows
+- Guild Member Overview: the icon stays red and locked again until the member list has been opened in the game
+- Alerts: the list shows the first line of the body next to the title (e.g. which building expires)
+- Data export: seconds instead of half a minute, only the helper's own data, the loading overlay covers the table properly again and shows the progress
+- Background music: “Ignore settlement type” works again, no stray “>” above the track list
+- Army overview: after collecting Alcatraz it still said “ready to harvest” instead of the time until the next harvest
+- Scouting status and building tooltips: numbers in the format of the helper language
+- Statistics and GEX course: months and numbers in the helper language, the GEX course axes no longer overlap
+- Translations: many typos and wrong terms fixed in German, English and French, English leftovers in Kits and Productions translated
+
+---
+
+##### 4.8.3.2
+**Bugfixes**
+
+- Forge Points bar: the package counter at the top showed too many FP once a stack of FP packages was used up completely (#3592)
+- Great Buildings: fixed an error when opening some Great Buildings
+- Guild Battlegrounds: the offset to server time is detected automatically again and follows daylight saving changes; a previously saved value is reset once, enter your own value again if you need one
+
+---
+
 ##### 4.8.3.1
 **Bugfixes**
 
