@@ -2166,7 +2166,8 @@ let MainParser = {
 		}
 
 		MainParser.updateArkBonus(ArkBonus, "Limited Bonuses");
-		MainParser.updateArkBonus(ArkBonusGold, "Limited Bonuses", 'gold');
+		console.log("ArkBonusGold = " + (ArkBonusGold + (ExtWorld == "fr4" ? 6 : 0)));
+		MainParser.updateArkBonus(ArkBonusGold + (ExtWorld == "fr4" ? 6 : 0), "Limited Bonuses", 'gold');
 	},
 
 
@@ -2187,7 +2188,8 @@ let MainParser = {
 		}
 
 		MainParser.updateArkBonus(ArkBonus, "City Map");
-		MainParser.updateArkBonus(ArkBonusGold, "City Map", 'gold');
+		console.log("ArkBonusGold = " + (ArkBonusGold + (ExtWorld == "fr4" ? 6 : 0)));
+		MainParser.updateArkBonus(ArkBonusGold + (ExtWorld == "fr4" ? 6 : 0), "City Map", 'gold');
 	},
 
 
