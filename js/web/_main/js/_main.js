@@ -875,14 +875,17 @@ GetFights = () =>{
 		FoEproxy.triggerFoeHelperHandler('CityMapUpdated');
 	});
 
+	// storing a building with a store item sends no city map message,
+	// so the building is removed here and the city modules are notified
 	FoEproxy.addRequestHandler('InventoryService', 'useItem', (postData) => {
-		if (postData?.requestData?.[0]?.__class__=="UseItemOnBuildingPayload") {
-			if (MainParser.Inventory[postData?.requestData?.[0]?.itemId].itemAssetName =="store_building") {
-				let id= postData?.requestData?.[0]?.mapEntityId
-				if (MainParser.CityMapData[id]) delete MainParser.CityMapData[id]
-				if (MainParser.CityBuildingsData[id]) delete MainParser.CityBuildingsData[id]
-			}
-		}
+		const payload = postData?.requestData?.[0];
+		if (payload?.__class__ !== 'UseItemOnBuildingPayload') return;
+		if (MainParser.Inventory[payload.itemId]?.itemAssetName !== 'store_building') return;
+
+		const id = payload.mapEntityId;
+		delete MainParser.CityMapData[id];
+		delete MainParser.CityBuildingsData[id];
+		FoEproxy.triggerFoeHelperHandler('CityMapUpdated');
 	});
 
 
@@ -920,6 +923,8 @@ GetFights = () =>{
 		}
 
 		MainParser.CurrentGB.Entity = CityMapEntity.responseData[0];
+		// the server omits zero values, a GB on level 0 has no level field
+		MainParser.CurrentGB.Entity['level'] ??= 0;
 		MainParser.CurrentGB.Rankings = Rankings;
 		GreatBuildings.VerifyReworkCosts(MainParser.CurrentGB.Entity['cityentity_id'], MainParser.CurrentGB.Entity['level'], MainParser.CurrentGB.Entity['state']?.['forge_points_for_level_up']);
 		MainParser.CurrentGB.OverviewRow = MainParser.GreatBuildingsOverview[MainParser.CurrentGB.Entity['player_id'] + '_' + MainParser.CurrentGB.Entity['id']];
@@ -1994,6 +1999,7 @@ let MainParser = {
 	 * the tier whose metadata level range contains the level, capped at the building's maxTier.
 	 * The ranges overlap (beta 11/2026: copper 1-200, gold 101-∞), the game checks them by
 	 * descending start level and takes the first match, i.e. the highest tier.
+	 * Levels outside all ranges (e.g. level 0) are copper like in the game.
 	 * Only the game's great_building_tiers metadata is used, without it the result is null.
 	 *
 	 * @param {?Object} meta City entity metadata of the great building
@@ -2003,10 +2009,11 @@ let MainParser = {
 	GetGBTierForLevel: (meta, Level) => {
 		if (!meta || !Array.isArray(meta['bonuses']) || meta['bonuses'].length === 0) return null; // classic world
 		if (!Array.isArray(MainParser.GreatBuildingTiers) || MainParser.GreatBuildingTiers.length === 0) return null;
+		Level ??= 0; // level 0 comes without a level field
 
 		const TierOrder = { copper: 1, silver: 2, gold: 3 },
 			MaxTier = meta['maxTier']?.['value'] || meta['maxTier'] || 'gold';
-		let Tier = null;
+		let Tier = 'copper';
 
 		const Rows = MainParser.GreatBuildingTiers.slice().sort((a, b) => (b['startLevel'] || 0) - (a['startLevel'] || 0));
 		for (const row of Rows) {
@@ -2015,7 +2022,6 @@ let MainParser = {
 			Tier = value;
 			break;
 		}
-		if (!Tier) return null;
 
 		if ((TierOrder[Tier] || 0) > (TierOrder[MaxTier] || 0)) Tier = MaxTier;
 
@@ -2049,6 +2055,31 @@ let MainParser = {
 	 * @returns {boolean}
 	 */
 	HasGoldTier: () => ((MainParser.GreatBuildingTiers || []).some(row => MainParser.IsGoldTier(row?.['tier'])) && GreatBuildings.HasReworkData()),
+
+
+	/**
+	 * Reward sources the game sent in camelCase before the prestige update (11/2026).
+	 * Stored statistics, tabs and translations use these names.
+	 */
+	LegacyRewardSources: new Set([
+		'antiquesDealer', 'chestEvent', 'chestEventGrandPrize', 'dailyChallenges', 'diplomaticGifts',
+		'explorationSite', 'forgeBowlEvent', 'grandPrize', 'guildExpedition', 'halloweenEvent',
+		'halloweenEventAutoCollect', 'pickupAll', 'spoilsOfWar', 'summerEventGrandPrize', 'winterEvent',
+	]),
+
+
+	/**
+	 * Maps a reward source of RewardService.collectReward to its pre-update name
+	 * (e.g. spoils_of_war → spoilsOfWar), so old and new entries stay one group.
+	 *
+	 * @param {string} Source Reward source as sent by the game
+	 * @returns {string} Legacy camelCase name if known, otherwise the source unchanged
+	 */
+	NormalizeRewardSource: (Source) => {
+		if (typeof Source !== 'string') return Source;
+		const Camel = Source.replace(/_([a-z])/g, (m, c) => c.toUpperCase());
+		return MainParser.LegacyRewardSources.has(Camel) ? Camel : Source;
+	},
 
 
 	/**

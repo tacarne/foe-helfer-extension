@@ -1,5 +1,62 @@
 ## Extension Changelog
 
+##### 4.8.9.2
+**Bugfixes**
+
+- LG-Rechner: Der Kopiertext enthält bei Kupfer-Stufen keine Plätze 6 und 7 mit „undefined“ mehr, wenn vorher ein goldenes Legendäres Bauwerk geöffnet war
+- City Builder: Stadtgrenze und Bauflächen werden wieder vollständig gezeichnet, Gebiete am Kartenrand fehlten
+- Tooltips: Die Tooltips des Helfers funktionieren auch dann, wenn eine andere Erweiterung eigene Tooltips mitbringt
+
+---
+
+##### 4.8.9.1
+**Bugfixes**
+
+- Gildenmitglieder-Übersicht: Der Reiter Gildengüter lädt wieder, statt sich endlos zu drehen; Güter angrenzender Zeitalter stehen beim richtigen Zeitalter
+- GG-Sektor-Alarme: Der Helfer-Ton ertönt jetzt zuverlässig zur Benachrichtigung
+- LG-Rechner: Legendäre Bauwerke auf Stufe 0 werden jetzt wirklich als Kupfer erkannt, die Stufe wird wieder angezeigt
+
+---
+
+##### 4.8.9.0
+**Update**
+
+- City Builder: komplett überarbeitet – Gebäude optimieren tauscht schwache Gebäude gegen bessere aus Inventar und Kits, Freifläche für neue Gebäude freihalten, Pläne pro Welt speichern und zwischen mehreren Layout-Varianten wechseln, Vorlagen aus einer Datei importieren, Plan als Bild herunterladen, Listen der nicht platzierten, entfernten und neuen Gebäude haken sich beim Nachbauen automatisch ab
+- City Builder: Beim Umbauen zeigt die Karte live den Fortschritt – grün auf dem geplanten Platz, orange knapp daneben, rot woanders abgestellt
+- Umbau-Menü Größenliste: Suchfeld, neue Spalte mit dem Fundort im Umbau-Menü (Reiter, Seite, Platz), Karten und Reiter in derselben Reihenfolge wie im Spiel
+- Gebäudesuche: Wiederholt die letzte Suche, wenn du die Stadt wechselst
+
+**Bugfixes**
+
+- Effizienzbewertung: Dasselbe Gebäude in verschiedenen Zeitaltern (z. B. ein herabgestuftes Erhabenes Gebäude) wird in eigenen Zeilen mit eigener Anzahl bewertet, die Ersatzvorschläge rechnen mit der Anzahl des passenden Zeitalters
+- Effizienzbewertung: Güter werden wie im Spiel mit dem Güterproduktionsboost bewertet
+- Effizienzbewertung und Produktionsübersicht: Güter aller Sorten eines Zeitalters aus Zufallsproduktionen werden wie im Spiel gerundet
+- LG-Rechner und Legendäre Bauwerke: Stufe 0 zählt wie im Spiel als Kupfer statt als Gold
+- Effizienzbewertung: Öffnet sich wieder bei Gebäuden mit Forgepunkte-Paketen, deren Daten unvollständig sind
+- GG-Sektor-Alarme: Bei offenem Spiel ertönt zur Benachrichtigung der Helfer-Ton (Einstellung „Ton aktivieren“)
+- Umbau-Menü Größenliste: Kein Fehler mehr bei Gebäuden, die noch nicht im Umbau-Entwurf stehen, Größenangaben brechen nicht mehr um
+
+---
+
+##### 4.8.8.0
+**Update**
+
+- LG Rechner: Der Kopiertext kann den Rang der Stufe enthalten – [K] für Kupfer, [G] für Gold; die Einstellung wird wie die übrigen Kopier-Optionen (auf Wunsch pro LG) gemerkt
+
+**Bugfixes**
+
+- Spielerprofil: Kampfboosts für Gildengefechte und Gildenexpedition stimmen wieder mit dem Spiel überein
+- Historische Verbündete: Bei Gebäuden mit Ablaufzeit zählen wieder alle Boosts eines Verbündeten
+- Effizienzbewertung: Multiplikator-Boni für Gildengefechte und Gildenexpedition werden korrekt bewertet
+- Statistik und FP-Sammler: Funde der Burg Himeji, des Weltraumfrachters und der täglichen Herausforderungen werden wieder erfasst, die seit dem Prestige-Update fehlenden Einträge erscheinen automatisch wieder; neuer Reiter für die Gold-Blaupausen aus der LG-Raffinerie
+- Alles-Einsammeln-Blocker: blockiert nicht mehr nach manuellem Abholen und erkennt motivierte Gebäude zuverlässig
+- Produktionsübersicht und Gildenmitglieder-Statistik: Das Observatorium zählt die Gildengüter der angrenzenden Zeitalter mit, Legendäre Bauwerke mit Prestige-Update erscheinen wieder in der Gildengüter-Liste
+- Powerleveln: Die Box passt ihre Breite an die Tabelle an, damit alle sieben Belohnungsplätze sichtbar sind
+- Zeitalter: Namen und Kurzformen neuer Zeitalter werden wieder automatisch aus dem Spiel übernommen, statt „Eras.24.short“ erscheint wieder STEL
+- Produktionsübersicht: Münzen und Vorräte von Gebäuden, die bei Motivation nur einen Teil ihrer Produktion verdoppeln, werden nicht mehr zu hoch angezeigt, Güter und Gildengüter ohne Produktionsboost bekommen kein zusätzliches 1 % mehr, der Güterboost wirkt nicht mehr auf Legendäre Bauwerke, Spezialgüter aus mehreren Produktionen werden richtig addiert, die Boost-Reiter für FP/Münzen/Vorräte zählen alle Boosts eines Gebäudes, Forge-Punkt-Pakete (z. B. Momijidori-Schrein) zählen im FP-Reiter und in der Tagesproduktion mit
+
+---
+
 ##### 4.8.7.0
 **Update**
 

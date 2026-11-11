@@ -119,6 +119,8 @@ Object.assign(Parts, {
 			else {
 				Parts.CopyDescending = true;
 			}
+
+			Parts.CopyIncludeTier = (localStorage.getItem(Parts.GetStorageKey('CopyIncludeTier', Parts.CurrentGB.Entity['cityentity_id'])) === 'true');
 		}
 
 		if (Parts.CopyModeAll) {
@@ -171,6 +173,8 @@ Object.assign(Parts, {
 			'<label class="form-check-label game-cursor" for="options-ownpart"><input type="checkbox" class="form-check-input" id="options-ownpart" data-options="ownpart" ' + (Parts.CopyIncludeOwnPart ? 'checked' : '') + '> <span>' + i18n('Boxes.OwnpartCalculator.OptionsOwnPart') + '</span></label>' +
 			'<label class="form-check-label game-cursor" for="options-prep"><input type="checkbox" class="form-check-input" id="options-prep" data-options="prep" ' + (Parts.CopyPreP ? 'checked' : '') + '> <span>P(xx)</span></label>' +
 			'<label class="form-check-label game-cursor" for="options-danger"><input type="checkbox" class="form-check-input" id="options-danger" data-options="danger" ' + (Parts.CopyIncludeDanger ? 'checked' : '') + '> <span>' + i18n('Boxes.OwnpartCalculator.OptionsDanger') + '</span></label>' +
+			// copper/gold tag of the level-up, only on worlds with the prestige rework
+			(MainParser.HasGoldTier() ? '<label class="form-check-label game-cursor" for="options-tier"><input type="checkbox" class="form-check-input" id="options-tier" data-options="tier" ' + (Parts.CopyIncludeTier ? 'checked' : '') + '> <span>' + i18n('Boxes.OwnpartCalculator.Tier') + ' [' + i18n('Boxes.OwnpartCalculator.TierCopperShort') + '/' + i18n('Boxes.OwnpartCalculator.TierGoldShort') + ']</span></label>' : '') +
 			'</div>';
 
 		h.push(Options)
@@ -216,11 +220,13 @@ Object.assign(Parts, {
 
 	/**
 	 * Builds the copy string for the currently shown GB from the current copy settings.
+	 * Only the reward places of the shown level-up count: Parts.CopyPlaces keeps the
+	 * ticks of places 6 and 7 from a gold level, a copper level has no such places.
 	 *
 	 * @returns {string} The formatted copy string
 	 */
 	GetCopyString: () => {
-		return Parts.GetCopyStringEx(Places=Parts.CopyPlaces, Maezens=Parts.Maezens, Level=Parts.Level, OwnPart=Parts.RemainingOwnPart, PlaceAll=Parts.CopyModeAll, PlaceAuto=Parts.CopyModeAuto, PlaceAutoUnsafe=Parts.CopyModeAutoUnsafe, DangerPlaces=Parts.DangerPlaces, LeveltLG=Parts.LeveltLG)
+		return Parts.GetCopyStringEx(Parts.CopyPlaces.slice(0, Parts.PlaceCount), Parts.Maezens, Parts.Level, Parts.RemainingOwnPart, Parts.CopyModeAll, Parts.CopyModeAuto, Parts.CopyModeAutoUnsafe, Parts.DangerPlaces, Parts.LeveltLG);
 	},
 
 
@@ -251,6 +257,8 @@ Object.assign(Parts, {
 		if (Parts.CopyIncludeLevelString) Ret.push(i18n('Boxes.OwnpartCalculator.OptionsLevelUp'));
 
 		if (Parts.CopyIncludeLevel) Ret.push(Level + '→' + (Level + 1));
+
+		if (Parts.CopyIncludeTier && MainParser.HasGoldTier()) Ret.push('[' + i18n(Parts.IsGoldLevel(Level) ? 'Boxes.OwnpartCalculator.TierGoldShort' : 'Boxes.OwnpartCalculator.TierCopperShort') + ']');
 
 		let NoPlacesSelected = true;
 		for (let i = 0; i < Places.length; i++) {

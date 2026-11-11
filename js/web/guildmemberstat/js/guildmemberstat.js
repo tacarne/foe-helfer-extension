@@ -393,13 +393,23 @@ let GuildMemberStat = {
 					}
 				}
 
-				if (entity[i].state && entity[i]['state']['current_product']) {
-					if (entity[i]['state']['current_product']['name'] !== 'clan_goods')
-						continue;
+				const currentProduct = entity[i].state?.['current_product'];
+				if (currentProduct) {
+					// prestige rework: list of products, clan_goods_extended adds adjacent era goods
+					const goodsByID = {};
+					(currentProduct['products'] || [currentProduct])
+						.filter(product => ['clan_goods', 'clan_goods_extended'].includes(product['name']))
+						.flatMap(product => product['goods'] || [])
+						.forEach(good => { goodsByID[good.good_id] = (goodsByID[good.good_id] || 0) + good.value; });
 
-					let totalgoods = entity[i]['state']['current_product']['goods'].map(good => good.value).reduce((sum, good) => good + sum);
+					const goods = Object.entries(goodsByID)
+						.map(([good_id, value]) => ({ good_id, value }))
+						.sort((a, b) => a.good_id.localeCompare(b.good_id));
+					if (goods.length === 0) continue;
 
-					GuildGoodsBuildings.push({ gbid: GBTempID, entity_id: EntityID, name: CityEntity['name'], resources: { totalgoods: totalgoods, goods: entity[i]['state']['current_product']['goods'].sort(function (a, b) { return a.good_id.localeCompare(b.good_id) }) }, level: entity[i]['level'], era: Member.era });
+					const totalgoods = goods.reduce((sum, good) => sum + good.value, 0);
+
+					GuildGoodsBuildings.push({ gbid: GBTempID, entity_id: EntityID, name: CityEntity['name'], resources: { totalgoods, goods }, level: entity[i]['level'], era: Member.era });
 				}
 			}
 		}
@@ -1758,19 +1768,13 @@ let GuildMemberStat = {
 		ErasGuildGoods = ErasGuildGoods.reduce(function (res, obj) {
 
 			if (obj.era !== undefined && obj.resources !== undefined && obj.resources.goods !== undefined && obj.resources.goods !== null) {
-				let eraId = Technologies.Eras[obj['era']];
-
-				if (!(eraId in res)) {
-					res[eraId] = {};
-					obj.resources.goods.forEach(good => {
-						res[eraId][good.good_id] = { good: good.good_id, name: GoodsData[good.good_id].name, value: good.value };
-					});
-				}
-				else {
-					obj.resources.goods.forEach(good => {
-						res[eraId][good.good_id].value += good.value;
-					});
-				}
+				// goods are listed under their own era, buildings can also produce adjacent era goods
+				obj.resources.goods.forEach(good => {
+					const eraId = Technologies.Eras[GoodsData[good.good_id]?.era || obj['era']];
+					res[eraId] ??= {};
+					res[eraId][good.good_id] ??= { good: good.good_id, name: GoodsData[good.good_id]?.name || good.good_id, value: 0 };
+					res[eraId][good.good_id].value += good.value;
+				});
 			}
 			return res;
 

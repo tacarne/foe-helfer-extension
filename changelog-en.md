@@ -1,5 +1,62 @@
 ## Extension Changelog
 
+##### 4.8.9.2
+**Bugfixes**
+
+- GB calculator: the copy text no longer contains places 6 and 7 with "undefined" on copper levels after a gold great building was opened
+- City Builder: the city border and the building area are drawn completely again, areas on the map edge were missing
+- Tooltips: the helper tooltips keep working when another extension brings its own tooltips
+
+---
+
+##### 4.8.9.1
+**Bugfixes**
+
+- Guild Member Overview: the guild goods tab loads again instead of spinning forever; goods of adjacent eras are listed under their own era
+- GBG sector alerts: the helper sound now plays reliably with the notification
+- GB calculator: great buildings on level 0 are now really treated as copper, the level is shown again
+
+---
+
+##### 4.8.9.0
+**Update**
+
+- City Builder: completely reworked – optimize buildings swaps weak buildings for better ones from your inventory and kits, keep free space for new buildings, save plans per world and switch between several layout variants, import templates from a file, download the plan as an image, lists of unplaced, removed and new buildings tick themselves off as you rebuild
+- City Builder: while you rebuild, the map shows your progress live – green on its planned spot, orange right next to it, red parked elsewhere
+- Reconstruction size list: search field, new column with the location in the reconstruction menu (tab, page, slot), cards and tabs in the same order as in the game
+- Building search: repeats the last search when you switch cities
+
+**Bugfixes**
+
+- Efficiency rating: the same building in different eras (e.g. an aged down ascended building) is rated in its own row with its own count, the replacement suggestions use the count of the matching era
+- Efficiency rating: goods are rated with the goods production boost like in the game
+- Efficiency rating and production overview: all goods of an era from random productions are rounded like in the game
+- GB calculator and great buildings: level 0 counts as copper like in the game instead of gold
+- Efficiency rating: opens again for buildings with forge point packages whose data is incomplete
+- GBG sector alerts: with the game open, the helper sound plays along with the notification (setting "Enable sound")
+- Reconstruction size list: no more error for buildings that are not in the reconstruction draft yet, sizes no longer wrap
+
+---
+
+##### 4.8.8.0
+**Update**
+
+- GB Calculator: the copy text can include the tier of the level – [C] for copper, [G] for gold; the setting is remembered like the other copy options (per GB if enabled)
+
+**Bugfixes**
+
+- Player profile: battle boosts for Guild Battlegrounds and Guild Expedition match the game again
+- Historical Allies: on buildings with an expiry time all boosts of an ally count again
+- Efficiency rating: multiplier bonuses for Guild Battlegrounds and Guild Expedition are rated correctly
+- Statistics and FP collector: finds of Himeji Castle, the Space Carrier and daily challenges are recorded again, the entries missing since the prestige update reappear automatically; new tab for the gold blueprints from the GB refinery
+- Collect-all blocker: no longer blocks after a manual collection and reliably detects motivated buildings
+- Production overview and guild member statistics: the Observatory counts the guild goods of the adjacent eras, great buildings with the prestige update are listed in the guild goods list again
+- Power leveling: the box adapts its width to the table, so all seven reward places are visible
+- Eras: names and short names of new eras are taken from the game automatically again, STEL is shown instead of "Eras.24.short"
+- Production overview: coins and supplies of buildings that double only part of their production when motivated are no longer overstated, goods and guild goods without a production boost no longer get an extra 1 %, the goods boost no longer applies to great buildings, special goods of several productions are added up correctly, the FP/coin/supply boost tabs include all boosts of a building, forge point packages (e.g. Momijidori Shrine) count in the FP tab and the daily production
+
+---
+
 ##### 4.8.7.0
 **Update**
 
