@@ -43,9 +43,17 @@ let CityBuilder = {
     EditMode: false,
     ShowNames: false,
     ShowTooltips: true,
+    /** @type {boolean} hatch the build progress (planned spots done, near, wrong) */
+    ShowProgress: true,
     Reserve: '',
     ReserveOn: false,
     Optimize: false,
+    /** @type {boolean} keep the city as it stands and only place new buildings */
+    KeepLayout: false,
+    /** @type {{x: number, y: number, width: number, height: number}[]} street pieces of the live city */
+    LiveRoads: [],
+    /** @type {boolean} whether the options of the building optimization are unfolded */
+    OptionsOpen: false,
     /** @type {{removed: Object[], added: Object[], gain: number}|null} swap plan of the building optimization */
     Planned: null,
     /** @type {number|null} timestamp of the plan loaded from the storage */
@@ -61,6 +69,7 @@ let CityBuilder = {
         if ($('#CityBuilderBox').length > 0) {
             HTML.CloseOpenBox('CityBuilderBox');
             if ($('#CityBuilderUnplacedBox').length > 0) HTML.CloseOpenBox('CityBuilderUnplacedBox');
+            if ($('#CityBuilderKeepBox').length > 0) HTML.CloseOpenBox('CityBuilderKeepBox');
             CityBuilder.stopWorker();
             return;
         }
@@ -78,6 +87,9 @@ let CityBuilder = {
         CityBuilder.Interaction.Hover = null;
 
         HTML.AddCssFile('city-builder');
+
+        // the city planner shows the live city on top of the plan - out of the way
+        if ($('#citymap-main').length > 0) HTML.CloseOpenBox('citymap-main');
 
         HTML.Box({
             id: 'CityBuilderBox',
@@ -97,6 +109,20 @@ let CityBuilder = {
 
         CityBuilder.showLoading();
         await CityBuilder.MergeData();
+    },
+
+
+    /**
+     * Unlocked areas of the map the builder works on.
+     *
+     * @returns {Object[]} Areas as the game sends them (zero coordinates left out).
+     */
+    liveAreas: () => {
+        let areas = CityMap.Main.unlockedAreas;
+        if (ActiveMap === 'era_outpost') areas = CityMap.EraOutpost.areas;
+        else if (ActiveMap === 'guild_raids') areas = CityMap.QI.areas;
+        else if (ActiveMap === 'cultural_outpost') areas = CityMap.CulturalOutpost.areas;
+        return Object.values(areas || {});
     },
 
 
@@ -133,7 +159,7 @@ let CityBuilder = {
         if (!CityBuilder.Variants[CityBuilder.VariantIndex]) return;
 
         // the per-run search log is only needed right after a calculation
-        const strip = (v) => ({ layout: v.layout, unplaced: v.unplaced || [], stats: Object.assign({}, v.stats, { tried: undefined }) });
+        const strip = (v) => ({ layout: v.layout, unplaced: v.unplaced || [], stats: Object.assign({}, v.stats, { tried: undefined }), planned: v.planned });
         const plan = {
             version: 2,
             savedAt: Date.now(),
@@ -323,10 +349,11 @@ let CityBuilder = {
         if (!layout.length) return;
 
         const cell = 24;
+        const areas = CityBuilder.liveAreas();
         let maxX = 0, maxY = 0;
-        for (const a of Object.values(CityMap.Main.unlockedAreas)) {
+        for (const a of areas) {
             maxX = Math.max(maxX, (a.x || 0) + a.width);
-            maxY = Math.max(maxY, (a.y || 0) + a.length);
+            maxY = Math.max(maxY, (a.y || 0) + (a.length || a.height));
         }
         const canvas = document.createElement('canvas');
         canvas.width = maxX * cell;
@@ -337,8 +364,8 @@ let CityBuilder = {
 
         // buildable area
         ctx.fillStyle = '#3d5a2a';
-        for (const a of Object.values(CityMap.Main.unlockedAreas)) {
-            ctx.fillRect((a.x || 0) * cell, (a.y || 0) * cell, a.width * cell, a.length * cell);
+        for (const a of areas) {
+            ctx.fillRect((a.x || 0) * cell, (a.y || 0) * cell, a.width * cell, (a.length || a.height) * cell);
         }
 
         const cssCache = new Map();
@@ -420,6 +447,8 @@ let CityBuilder = {
         if (!v) return;
 
         CityBuilder.VariantIndex = idx;
+        // the building optimization plugs the gaps of every variant differently
+        if (v.planned) CityBuilder.Planned = v.planned;
         CityBuilder.Data = v.layout.filter(b => !(b.id !== undefined && b.id !== null && CityBuilder.Excluded.has(b.id)));
         CityBuilder.Unplaced = v.unplaced || [];
         CityBuilder.Stats = v.stats || null;
@@ -569,9 +598,11 @@ let CityBuilder = {
         let storedOpacity = parseFloat(localStorage.getItem('CityBuilderOpacity') || 0.9);
         CityBuilder.ShowNames = localStorage.getItem('CityBuilderShowNames') === '1';
         CityBuilder.ShowTooltips = localStorage.getItem('CityBuilderTooltips') !== '0';
+        CityBuilder.ShowProgress = localStorage.getItem('CityBuilderProgress') !== '0';
         CityBuilder.Reserve = localStorage.getItem('CityBuilderReserve') || '5x5';
         CityBuilder.ReserveOn = localStorage.getItem('CityBuilderReserveOn') === '1';
         CityBuilder.Optimize = localStorage.getItem('CityBuilderOptimize') === '1';
+        CityBuilder.KeepLayout = localStorage.getItem('CityBuilderKeepLayout') === '1';
 
         if (!CityBuilder.Data || CityBuilder.Data.length === 0) {
             $('#CityBuilderBoxBody').html('<div style="padding:20px;">' + i18n('Boxes.CityBuilder.NoData') + '</div>');
@@ -590,7 +621,8 @@ let CityBuilder = {
             const strategyNames = {
                 'bands': i18n('Boxes.CityBuilder.StrategyBands'),
                 'bands-vertical': i18n('Boxes.CityBuilder.StrategyBandsVertical'),
-                'organic': i18n('Boxes.CityBuilder.StrategyOrganic')
+                'organic': i18n('Boxes.CityBuilder.StrategyOrganic'),
+                'keep': i18n('Boxes.CityBuilder.StrategyKeep')
             };
             const strategyTag = CityBuilder.Stats && strategyNames[CityBuilder.Stats.strategy]
                 ? ` &middot; ${strategyNames[CityBuilder.Stats.strategy]}`
@@ -615,6 +647,7 @@ let CityBuilder = {
         // options: building names on the map, hover tooltips, click-to-remove mode, recalculation
         h.push(`<label class="control-toggle"><input type="checkbox" class="names-toggle"${CityBuilder.ShowNames ? ' checked' : ''} />${i18n('Boxes.CityBuilder.ShowNames')}</label>`);
         h.push(`<label class="control-toggle" title="${i18n('Boxes.CityBuilder.ShowTooltipsHint')}"><input type="checkbox" class="tooltips-toggle"${CityBuilder.ShowTooltips ? ' checked' : ''} />${i18n('Boxes.CityBuilder.ShowTooltips')}</label>`);
+        h.push(`<label class="control-toggle" title="${i18n('Boxes.CityBuilder.ShowProgressHint')}"><input type="checkbox" class="progress-toggle"${CityBuilder.ShowProgress ? ' checked' : ''} />${i18n('Boxes.CityBuilder.ShowProgress')}</label>`);
         h.push(`<label class="control-toggle" title="${i18n('Boxes.CityBuilder.EditModeHint')}"><input type="checkbox" class="edit-toggle"${CityBuilder.EditMode ? ' checked' : ''} />${i18n('Boxes.CityBuilder.EditMode')}</label>`);
         h.push(`</div>`);
 
@@ -623,6 +656,8 @@ let CityBuilder = {
         h.push(`<label class="control-toggle" title="${i18n('Boxes.CityBuilder.ReserveHint')}"><input type="checkbox" class="reserve-toggle"${CityBuilder.ReserveOn ? ' checked' : ''} />${i18n('Boxes.CityBuilder.Reserve')}</label>`);
         h.push(`<input type="text" class="reserve-input" size="3" placeholder="5x5" value="${CityBuilder.Reserve}"${CityBuilder.ReserveOn ? '' : ' disabled'} />`);
         h.push(`<label class="control-toggle" title="${i18n('Boxes.CityBuilder.OptimizeHint')}"><input type="checkbox" class="optimize-toggle"${CityBuilder.Optimize ? ' checked' : ''} />${i18n('Boxes.CityBuilder.Optimize')}</label>`);
+        h.push(`<button class="btn optimize-options-btn${CityBuilder.OptionsOpen ? ' open' : ''}" title="${i18n('Boxes.CityBuilder.OptimizeOptions')}">&#9881;</button>`);
+        h.push(`<label class="control-toggle" title="${i18n('Boxes.CityBuilder.KeepLayoutHint')}"><input type="checkbox" class="keep-toggle"${CityBuilder.KeepLayout ? ' checked' : ''} />${i18n('Boxes.CityBuilder.KeepLayout')}</label>`);
         h.push(`<button class="btn recalc-btn">${i18n('Boxes.CityBuilder.Recalculate')}</button>`);
         h.push(`<button class="btn save-btn" title="${i18n('Boxes.CityBuilder.SavePlanHint')}">${i18n('Boxes.CityBuilder.SavePlan')}</button>`);
         h.push(`<button class="btn image-btn" title="${i18n('Boxes.CityBuilder.ExportImageHint')}">${i18n('Boxes.CityBuilder.ExportImage')}</button>`);
@@ -632,6 +667,8 @@ let CityBuilder = {
             h.push(`<span class="delete-plan" title="${i18n('Boxes.CityBuilder.DeletePlan')}">&times;</span></span>`);
         }
         h.push(`</div>`);
+
+        h.push(CityBuilder.optimizeOptionsHtml());
 
         h.push(`</div>`);
 
@@ -648,6 +685,10 @@ let CityBuilder = {
             if (typeof CityBuilder.Planned?.gain === 'number') {
                 const gain = CityBuilder.Planned.gain;
                 h.push(`<div>${i18n('Boxes.CityBuilder.RatingGain')}: <b class="${gain >= 0 ? 'saving' : 'extra'}">${gain >= 0 ? '+' : ''}${gain}</b></div>`);
+            }
+            // keep mode: standing buildings the plan moves to another spot
+            if (typeof CityBuilder.Stats.moved === 'number') {
+                h.push(`<div>${i18n('Boxes.CityBuilder.Moved')}: <b>${CityBuilder.Stats.moved}</b></div>`);
             }
             h.push(`</div>`);
         }
@@ -686,6 +727,12 @@ let CityBuilder = {
                 CityBuilder.Renderer.render();
             });
 
+            $('.progress-toggle').on('change', function() {
+                CityBuilder.ShowProgress = this.checked;
+                localStorage.setItem('CityBuilderProgress', this.checked ? '1' : '0');
+                CityBuilder.Renderer.render();
+            });
+
             $('.tooltips-toggle').on('change', function() {
                 CityBuilder.ShowTooltips = this.checked;
                 localStorage.setItem('CityBuilderTooltips', this.checked ? '1' : '0');
@@ -699,7 +746,7 @@ let CityBuilder = {
                 CityBuilder.Interaction.setHighlight(CityBuilder.Interaction.Hover);
             });
 
-            // free space and optimization take effect with the next calculation
+            // free space, optimization and keep mode take effect with the next calculation
             $('.reserve-toggle').on('change', function() {
                 CityBuilder.ReserveOn = this.checked;
                 localStorage.setItem('CityBuilderReserveOn', this.checked ? '1' : '0');
@@ -718,6 +765,23 @@ let CityBuilder = {
                 localStorage.setItem('CityBuilderOptimize', this.checked ? '1' : '0');
             });
 
+            $('.keep-toggle').on('change', function() {
+                CityBuilder.KeepLayout = this.checked;
+                localStorage.setItem('CityBuilderKeepLayout', this.checked ? '1' : '0');
+            });
+
+            $('.optimize-options-btn').on('click', function() {
+                CityBuilder.OptionsOpen = !CityBuilder.OptionsOpen;
+                $(this).toggleClass('open', CityBuilder.OptionsOpen);
+                $('#CityBuilderBoxBody .optimize-options').toggleClass('closed', !CityBuilder.OptionsOpen);
+            });
+
+            $('.optimize-options [data-option]').on('change', function() {
+                CityBuilder.Optimizer.setOption(this.dataset.option, this.type === 'checkbox' ? this.checked : this.value);
+            });
+
+            $('.keep-list-btn').on('click', () => CityBuilder.showKeepList());
+
             $('.recalc-btn').on('click', () => CityBuilder.Recalculate());
             $('.save-btn').on('click', () => CityBuilder.savePlan());
             $('.image-btn').on('click', () => CityBuilder.exportImage());
@@ -734,6 +798,97 @@ let CityBuilder = {
             });
 
             CityBuilder.showUnplaced();
+        });
+    },
+
+
+    /**
+     * Builds the options of the building optimization: what stays in the city
+     * and what may be taken from the inventory. Every control carries its
+     * option name in data-option and is stored on change.
+     *
+     * @returns {string} HTML of the options panel.
+     */
+    optimizeOptionsHtml: () => {
+        const options = CityBuilder.Optimizer.options();
+        const text = (key) => i18n('Boxes.CityBuilder.Option' + key);
+        const toggle = (option, key) => `<label class="control-toggle" title="${text(key + 'Hint')}"><input type="checkbox" data-option="${option}"${options[option] ? ' checked' : ''} />${text(key)}</label>`;
+        const modes = CityBuilder.Optimizer.LimitedModes
+            .map(mode => `<option value="${mode}"${options.limited === mode ? ' selected' : ''}>${text('Limited_' + mode)}</option>`);
+
+        return `<div class="optimize-options${CityBuilder.OptionsOpen ? '' : ' closed'}">`
+            + `<div class="options-group"><b>${text('Keep')}</b>`
+            + toggle('allies', 'Allies') + toggle('fiveMinutes', 'FiveMinutes') + toggle('happiness', 'Happiness') + toggle('population', 'Population')
+            + `<label class="control-toggle" title="${text('LimitedHint')}">${text('Limited')}<select data-option="limited">${modes.join('')}</select></label>`
+            + `<button class="btn keep-list-btn" title="${text('KeepListHint')}">${text('KeepList')} (<span class="keep-count">${options.keep.length}</span>)</button>`
+            + `</div>`
+            + `<div class="options-group"><b>${text('Use')}</b>`
+            + toggle('useNeo', 'UseNeo') + toggle('useAscended', 'UseAscended') + toggle('useKits', 'UseKits') + toggle('fill', 'Fill')
+            + `<span class="options-note">${text('Note')}</span>`
+            + `</div>`
+            + `</div>`;
+    },
+
+
+    /**
+     * Opens the form for picking the buildings that always stay: one row per
+     * building type of the city with a tick, weakest first, and a search
+     * field. Ticks are stored right away as the option "keep"; picked types
+     * that do not stand in this city stay stored untouched.
+     */
+    showKeepList: () => {
+        if ($('#CityBuilderKeepBox').length > 0) {
+            HTML.CloseOpenBox('CityBuilderKeepBox');
+            return;
+        }
+
+        HTML.Box({
+            id: 'CityBuilderKeepBox',
+            title: i18n('Boxes.CityBuilder.KeepTitle'),
+            auto_close: true,
+            dragdrop: true,
+            minimize: true,
+            resize: true
+        });
+
+        const O = CityBuilder.Optimizer;
+        const list = O.keepList();
+        const shown = new Set(list.map(g => g.entityId));
+
+        let h = [];
+        h.push(`<div class="keep-hint">${i18n('Boxes.CityBuilder.KeepHint')}</div>`);
+        h.push(`<input type="text" class="keep-search" placeholder="${i18n('Boxes.CityBuilder.KeepSearch')}" />`);
+        h.push('<table class="foe-table keep-table"><thead><tr>');
+        h.push(`<th></th><th>${i18n('Boxes.CityBuilder.KeepBuilding')}</th><th class="text-right">${i18n('Boxes.CityBuilder.KeepSize')}</th><th class="text-right">${i18n('Boxes.CityBuilder.RatingGain')}</th>`);
+        h.push('</tr></thead><tbody>');
+        for (const g of list) {
+            h.push(`<tr${g.kept ? ' class="kept"' : ''}>`);
+            h.push(`<td><input type="checkbox" data-entity="${g.entityId}"${g.kept ? ' checked' : ''} /></td>`);
+            h.push(`<td class="fh-tooltip" data-callback_tt="Tooltips.buildingTT" data-meta_id="${g.entityId}">${g.count > 1 ? g.count + '&times; ' : ''}${g.name}</td>`);
+            h.push(`<td class="text-right">${g.h}x${g.w}</td>`);
+            h.push(`<td class="text-right">${g.score}</td>`);
+            h.push('</tr>');
+        }
+        h.push('</tbody></table>');
+
+        const body = $('#CityBuilderKeepBoxBody');
+        body.html(h.join(''));
+
+        // a click anywhere in the row ticks the building
+        body.find('tbody tr').on('click', function(e) {
+            const tick = $(this).find('input')[0];
+            if (e.target !== tick) tick.checked = !tick.checked;
+            $(this).toggleClass('kept', tick.checked);
+
+            const picked = body.find('tbody input:checked').map((i, el) => el.dataset.entity).get();
+            const keep = O.options().keep.filter(id => !shown.has(id)).concat(picked);
+            O.setOption('keep', keep);
+            $('.optimize-options .keep-count').text(keep.length);
+        });
+
+        body.find('.keep-search').on('input', function() {
+            const query = this.value.trim().toLowerCase();
+            body.find('tbody tr').each((i, row) => $(row).toggle(row.cells[1].textContent.toLowerCase().includes(query)));
         });
     },
 
@@ -795,66 +950,112 @@ let CityBuilder = {
             return [...groups.values()].sort((a, b) => finished(a) - finished(b) || a.name.localeCompare(b.name));
         };
 
+        // what a magnifier finds: copies standing in the city; buildings that
+        // only come from the inventory get none, the map marks them with ★
+        const finds = [];
+        const findIcon = (g, withFind) => {
+            if (!withFind || !BuildingMarker.supported) return '';
+            const inCity = g.ids.filter(id => id !== undefined && MainParser.CityMapData?.[id]);
+            if (!inCity.length) return '';
+            finds.push(inCity);
+            return `<span class="find-building" data-find="${finds.length - 1}" title="${i18n('Boxes.CityBuilder.FindInCity')}">${CityBuilder.FindIcon}</span>`;
+        };
+
+        // one collapsible section per list, the folded ones are remembered
+        let collapsed = [];
+        try {
+            collapsed = JSON.parse(localStorage.getItem('CityBuilderUnplacedCollapsed') || '[]');
+        } catch (e) {
+            collapsed = [];
+        }
+        const section = (key, title, count, extra, rows) => {
+            const closed = collapsed.includes(key);
+            h.push(`<div class="unplaced-section${closed ? ' closed' : ''}" data-section="${key}">`);
+            h.push(`<div class="unplaced-section-head"><span class="chevron"></span><span class="section-title">${title.replace(/:\s*$/, '')}</span><span class="section-count">${count}</span>${extra || ''}</div>`);
+            h.push(`<div class="unplaced-section-body"><table class="foe-table unplaced-table"><tbody>${rows.join('')}</tbody></table></div>`);
+            h.push('</div>');
+        };
+        const nameCell = (g, withFind) => `<td><span class="fh-tooltip" data-callback_tt="Tooltips.buildingTT" data-meta_id="${g.asset_id}">${g.name}</span>${findIcon(g, withFind)}</td>`;
+
         let h = [];
 
         if (hasUnplaced) {
-            h.push(`<div class="unplaced-hint">${i18n('Boxes.CityBuilder.UnplacedHint')}</div>`);
-            h.push('<table class="foe-table unplaced-table"><tbody>');
-            for (const g of groupList(CityBuilder.Unplaced)) {
-                h.push('<tr>');
-                h.push(`<td>${g.count}&times;</td>`);
-                h.push(`<td class="fh-tooltip" data-callback_tt="Tooltips.buildingTT" data-meta_id="${g.asset_id}">${g.name}</td>`);
-                h.push(`<td class="text-right">${g.height}x${g.width}</td>`);
-                h.push('</tr>');
-            }
-            h.push('</tbody></table>');
+            const rows = groupList(CityBuilder.Unplaced).map(g => `<tr><td>${g.count}&times;</td>${nameCell(g, true)}<td class="text-right">${g.height}x${g.width}</td></tr>`);
+            section('unplaced', i18n('Boxes.CityBuilder.UnplacedHint'), CityBuilder.Unplaced.length, '', rows);
         }
 
         if (hasRemoved) {
-            h.push(`<div class="unplaced-hint">${i18n('Boxes.CityBuilder.RemovedHint')}</div>`);
-            h.push('<table class="foe-table unplaced-table"><tbody>');
-            for (const g of groupList(CityBuilder.Removed)) {
-                h.push('<tr>');
-                h.push(`<td>${g.count}&times;</td>`);
-                h.push(`<td class="fh-tooltip" data-callback_tt="Tooltips.buildingTT" data-meta_id="${g.asset_id}">${g.name}</td>`);
-                h.push(`<td class="text-right">${g.height}x${g.width}</td>`);
-                h.push(`<td class="text-right"><span class="removed-restore" title="${i18n('Boxes.CityBuilder.Restore')}" data-restore_id="${g.ids[g.ids.length - 1]}">&#8630;</span></td>`);
-                h.push('</tr>');
-            }
-            h.push('</tbody></table>');
+            const rows = groupList(CityBuilder.Removed).map(g => `<tr><td>${g.count}&times;</td>${nameCell(g, true)}<td class="text-right">${g.height}x${g.width}</td>`
+                + `<td class="text-right"><span class="removed-restore" title="${i18n('Boxes.CityBuilder.Restore')}" data-restore_id="${g.ids[g.ids.length - 1]}">&#8630;</span></td></tr>`);
+            section('removed', i18n('Boxes.CityBuilder.RemovedHint'), CityBuilder.Removed.length, '', rows);
         }
 
         // building optimization: what leaves the city and what comes from the inventory
         if (hasPlanned) {
             const progress = CityBuilder.planProgress();
-            const plannedList = (list, hint, isDone) => {
+            const plannedList = (key, list, hint, isDone, withFind) => {
                 if (!list.length) return;
                 const asLayout = list.map(b => ({ id: b.id, asset_id: b.entityId, name: b.name, width: b.w, height: b.h, score: b.score, done: isDone(b) }));
                 const finished = asLayout.filter(b => b.done).length;
-                h.push(`<div class="unplaced-hint">${hint}${finished ? ` <span class="plan-progress">&#10003; ${finished}/${asLayout.length}</span>` : ''}</div>`);
-                h.push('<table class="foe-table unplaced-table"><tbody>');
-                for (const g of groupList(asLayout)) {
+                const rows = groupList(asLayout).map(g => {
                     const open = g.count - g.done;
-                    h.push(`<tr${open ? '' : ' class="done"'}>`);
-                    h.push(`<td>${open ? open + '&times;' : '&#10003;'}${open && g.done ? ` <span class="done-count">&#10003;${g.done}</span>` : ''}</td>`);
-                    h.push(`<td class="fh-tooltip" data-callback_tt="Tooltips.buildingTT" data-meta_id="${g.asset_id}">${g.name}</td>`);
-                    h.push(`<td class="text-right">${g.height}x${g.width}</td>`);
-                    h.push(`<td class="text-right">${g.score}</td>`);
-                    h.push('</tr>');
-                }
-                h.push('</tbody></table>');
+                    return `<tr${open ? '' : ' class="done"'}>`
+                        + `<td>${open ? open + '&times;' : '&#10003;'}${open && g.done ? ` <span class="done-count">&#10003;${g.done}</span>` : ''}</td>`
+                        + nameCell(g, withFind)
+                        + `<td class="text-right">${g.height}x${g.width}</td><td class="text-right">${g.score}</td></tr>`;
+                });
+                section(key, hint, asLayout.length - finished, finished ? `<span class="plan-progress">&#10003; ${finished}/${asLayout.length}</span>` : '', rows);
             };
             const template = planned.source === 'template';
-            plannedList(planned.removed, i18n(template ? 'Boxes.CityBuilder.TemplateRemoved' : 'Boxes.CityBuilder.PlannedRemoved'), progress.removed);
-            plannedList(planned.added, i18n(template ? 'Boxes.CityBuilder.TemplateAdded' : 'Boxes.CityBuilder.PlannedAdded'), progress.added);
+            plannedList('planned-removed', planned.removed, i18n(template ? 'Boxes.CityBuilder.TemplateRemoved' : 'Boxes.CityBuilder.PlannedRemoved'), progress.removed, true);
+            plannedList('planned-added', planned.added, i18n(template ? 'Boxes.CityBuilder.TemplateAdded' : 'Boxes.CityBuilder.PlannedAdded'), progress.added, false);
         }
 
-        $('#CityBuilderUnplacedBoxBody').html(h.join(''));
+        const body = $('#CityBuilderUnplacedBoxBody');
+        body.html(h.join(''));
 
         // restore one instance of the group for the next recalculation
-        $('#CityBuilderUnplacedBoxBody .removed-restore').on('click', function() {
+        body.find('.removed-restore').on('click', function() {
             CityBuilder.restoreRemoved($(this).data('restore_id'));
         });
+
+        body.find('.unplaced-section-head').on('click', function() {
+            const sec = $(this).parent().toggleClass('closed');
+            const key = sec.data('section');
+            collapsed = collapsed.filter(k => k !== key);
+            if (sec.hasClass('closed')) collapsed.push(key);
+            localStorage.setItem('CityBuilderUnplacedCollapsed', JSON.stringify(collapsed));
+        });
+
+        body.find('.find-building').on('click', function(e) {
+            e.stopPropagation();
+            CityBuilder.findBuilding(finds[this.dataset.find], this);
+        });
+    },
+
+
+    /** @type {string} magnifier icon of the find buttons */
+    FindIcon: '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 10l4.5 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+
+
+    /**
+     * Points at the copies of a building standing in the city with the arrow
+     * of the building marker. A second click on the same icon turns the
+     * marking off again.
+     *
+     * @param {Array} ids - City ids of the copies.
+     * @param {HTMLElement} icon - The clicked icon.
+     */
+    findBuilding: (ids, icon) => {
+        if (!ids) return;
+        const active = $(icon).hasClass('active');
+        $('#CityBuilderUnplacedBoxBody .find-building.active').removeClass('active');
+        BuildingMarker.hide();
+
+        if (!active) {
+            BuildingMarker.show(ids);
+            $(icon).addClass('active');
+        }
     },
 
 
@@ -971,6 +1172,7 @@ let CityBuilder = {
 
         let buildingsInput = [];
         CityBuilder.RoadsBefore = 0;
+        CityBuilder.LiveRoads = [];
 
         for (const [id, instance] of Object.entries(mapData)) {
             if (!instance) continue;
@@ -991,6 +1193,7 @@ let CityBuilder = {
                 const sw = parseInt(meta.components?.AllAge?.placement?.size?.x || meta.width || 1);
                 const sh = parseInt(meta.components?.AllAge?.placement?.size?.y || meta.length || 1);
                 CityBuilder.RoadsBefore += sw * sh;
+                CityBuilder.LiveRoads.push({ x: parseInt(instance.x || 0), y: parseInt(instance.y || 0), width: sw, height: sh });
                 continue;
             }
 
@@ -1052,7 +1255,9 @@ let CityBuilder = {
                 height: b_height,
                 street_level: reqStreet,
                 chain_id: chainId,
-                chain_pos: chainPos
+                chain_pos: chainPos,
+                // stands in the live city - the keep mode leaves it on its spot
+                standing: true
             });
         }
 
@@ -1090,7 +1295,9 @@ let CityBuilder = {
             if (best === undefined || $('#CityBuilderBox').length === 0) return;
             if (best) {
                 // city ids at planning time: later ids are new placements
-                CityBuilder.Planned = Object.assign(best.plan, { known: Object.keys(MainParser.CityMapData) });
+                const known = Object.keys(MainParser.CityMapData);
+                for (const v of best.result.variants) v.planned.known = known;
+                CityBuilder.Planned = best.plan;
                 CityBuilder.Variants = best.result.variants;
                 CityBuilder.applyVariant(0);
                 return;
@@ -1142,15 +1349,18 @@ let CityBuilder = {
     /**
      * Runs one layout search in a web worker.
      *
+     * With the keep option the worker gets the streets of the live city as
+     * well and only places the buildings that do not stand yet.
+     *
      * @param {Object[]} buildingsInput - Worker input of the buildings.
      * @param {number} budgetMs - Search time, 0 for the worker default.
      * @param {function(number)} onProgress - Receives the progress in percent.
      * @returns {Promise<Object|null>} Worker result, null when the run was replaced by a newer one.
      */
     runWorker: (buildingsInput, budgetMs, onProgress) => new Promise((resolve) => {
-        const mapData = CityMap.Main.unlockedAreas;
+        const mapData = CityBuilder.liveAreas();
 
-        if (!mapData || Object.keys(mapData).length === 0) {
+        if (mapData.length === 0) {
             resolve({ success: false, error: i18n('Boxes.CityBuilder.NoAreas') });
             return;
         }
@@ -1187,7 +1397,8 @@ let CityBuilder = {
         // would otherwise leave the spinner spinning forever and leak the blob URL
         worker.onerror = (err) => finish({ success: false, error: (err && err.message) || 'Worker error' });
 
-        worker.postMessage({ mapData: mapData, buildingsData: buildingsInput, budgetMs: budgetMs || 0 });
+        const keep = localStorage.getItem('CityBuilderKeepLayout') === '1';
+        worker.postMessage({ mapData: mapData, buildingsData: buildingsInput, budgetMs: budgetMs || 0, keep: keep, roads: keep ? CityBuilder.LiveRoads : [] });
     }),
 
 };

@@ -1,5 +1,87 @@
 ## Extension Changelog
 
+##### 4.9.2.0
+**Update**
+
+- LG Rechner: Sparschwein-Spalte mit deinem Mäzen-Bonus bei fremden LGs, wie im Kostenrechner
+- Inventar-Übersicht: Größe an jedem Gebäude, Sortierung und Filter nach Größe
+- Erhabene Gebäude: Eine Glocke je Gebäude schaltet seine Ablauf-Alarme stumm, ersetzt die Liste in den Einstellungen
+
+**Bugfixes**
+
+- Armee-Vorschlag: Aufstellungen mit Agenten werden realistischer bewertet
+- Armee-Vorschlag: „Verluste“ zählt nur die Verluste gewonnener Kämpfe
+- Armee-Vorschlag: Das [?] führt zur Anleitung
+- Fenster: ragen auf kleineren Bildschirmen nicht mehr über den Rand
+- Gildenmitglieder-Übersicht: LGs aller besuchten Mitglieder werden gezählt, nicht besuchte stehen extra
+
+---
+
+##### 4.9.1.0
+**Update**
+
+- City Builder: Neue Option „Nur anpassen“ – die Stadt bleibt, wie sie steht; nur neue Gebäude werden eingeplant und dafür so wenige wie möglich umgesetzt
+- City Builder: Deutlich weniger Lücken, die freie Fläche bleibt als ein Block übrig; Straßengebäude stehen zusammen statt einzeln zwischen straßenlosen
+- City Builder: „Gebäude optimieren“ füllt übrige Lücken mit den bestbewerteten passenden Gebäuden aus dem Inventar (abschaltbar über das Zahnrad)
+- City Builder: Die Berechnung probiert in derselben Zeit mehr Varianten durch
+- City Builder: Die Schraffur für den Baufortschritt lässt sich ausblenden, der Stadtplaner schließt sich beim Öffnen
+- City Builder: Die Listen der Seitenbox lassen sich einklappen, eine Lupe zeigt Gebäude, die in der Stadt stehen
+- Menü: Neue Symbole für Event-Cockpit, Jahresrückblick, Web Requests und Gebäudesuche
+
+**Bugfixes**
+
+- City Builder: Optimierung und Bildexport nutzen in Siedlung, Kolonie und Quanten-Invasion die Fläche der jeweiligen Karte
+- Armee-Übersicht: Die Einheiten-Icons werden wieder angezeigt
+- LG Rechner: Bei fremden LG gilt derselbe Prozentsatz wie im Kostenrechner, er bleibt beim Wechsel zwischen geteilter und gemeinsamer Ansicht erhalten
+
+---
+
+##### 4.9.0.0
+**Update**
+
+- Neu: Event-Cockpit – das laufende Event auf einen Blick: Restzeit, Währungen, nächster Preis, Tagesaufgaben, Quests und Liga
+- Neu: Jahresrückblick – dein FoE-Jahr als Bild zum Teilen, mit 12 Designs und 22 Farben
+- Neu: Armee-Vorschlag im Kampffenster – die Aufstellungen mit der besten Siegrate gegen die anstehende Armee, dazu deine echte Bilanz
+- Forschungskosten: Prognose, wie viele Tage du je Ressource noch brauchst
+- Statistiken: Tageswerte bleiben bis zum Beginn des Vorjahres erhalten
+- Statistiken: Der Helfer merkt sich zusätzlich LG-Einzahlungen, Punkte, Kämpfe, LG-Stufen und Erfolge (nur lokal)
+- City Builder: Die Gebäude-Optimierung lässt sich einstellen (Zahnrad neben „Gebäude optimieren“)
+- Gildengefechte: Der Countdown zum nächsten Fokus-Ziel zählt sekundengenau und lässt sich abschalten
+
+**Bugfixes**
+
+- Menüleiste: Beim Sortieren blättert die Leiste erst, wenn das Symbol eine volle Sekunde über dem Pfeil bleibt
+
+---
+
+##### 4.8.10.0
+**Update**
+
+- Gildengefechte: Karte und Sektorliste sind verbunden, mit Tooltip und Auswahl per Klick
+- Gildengefechte: Zum Kopieren ausgewählte Sektoren bleiben nach dem Aktualisieren ausgewählt
+- Gildengefechte: Die nächsten Fokus-Ziele als verschiebbare Übersicht auf der Karte, mit Countdown am Menü-Button
+- Kulturelle Siedlungen & Quanten-Invasion: Glocke für Alarme, wenn Produktionen oder Bauten fertig sind
+- Produktionsübersicht: „Boost“ zeigt bei Gütern, welche Quellen den Produktionsbonus liefern
+- Produktionsübersicht: Die Boost-Ansicht bleibt beim Abholen offen
+- Powerleveln: Freischaltkosten je Level, Summe im Vergleich zu deinem Bestand
+- Stadtübersicht: Neue Effizienz-Heatmap von Rot (schwach) bis Grün (stark)
+- Nachrichten-Checkliste: Neuer Button „Meine letzte Nachricht“ mit deinen genommenen Plätzen
+- Gildenmitglieder-Übersicht: GEX und GG zeigen die letzte beendete Runde, neu ist eine QI-Spalte
+
+**Bugfixes**
+
+- Einstellungen: Die Menü-Länge wirkt sofort
+- Gildengefechte: Die Sektorliste bleibt auch nach langer Zeit flüssig
+- QI-Übersicht: Die eigene Zeile ist wieder hervorgehoben
+- Gildenmitglieder-Übersicht: Die Spalte Aktivität sortiert richtig
+- Gildenmitglieder-Übersicht: Die GEX-Spalte in den Details heißt richtig „Begegnungen“
+- Beschränkte Gebäude: Ablauf-Alarme kommen wieder zuverlässig
+- Powerleveln: Die Kopfzeile passt wieder zu den Spalten
+- Produktionsübersicht: Die Boost-Buttons funktionieren in allen Ansichten
+- Helfer-Fenster reagieren auch nach vielen geöffneten Boxen zügig
+
+---
+
 ##### 4.8.9.2
 **Bugfixes**
 

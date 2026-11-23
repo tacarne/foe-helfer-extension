@@ -1,5 +1,87 @@
 ## Extension Changelog
 
+##### 4.9.2.0
+**Update**
+
+- GB Calculator: piggy bank column with your contribution boost on other players' GBs, like in the GB Cost Calc
+- Inventory Overview: size on every building, sort and filter by size
+- Ascended Buildings: a bell per building mutes its expiry alerts, replaces the list in the settings
+
+**Bugfixes**
+
+- Army suggestion: line-ups with rogues are rated more realistically
+- Army suggestion: "Losses" only counts units lost in won battles
+- Army suggestion: the [?] opens the guide
+- Boxes: no longer stick out beyond a smaller screen
+- Guild member overview: great buildings of all visited members are counted, unvisited members are listed separately
+
+---
+
+##### 4.9.1.0
+**Update**
+
+- City Builder: New option "Adjust only" – the city stays as it stands; only new buildings are planned in, moving as few buildings as possible
+- City Builder: Far fewer gaps, the free space is left as one block; street buildings stand together instead of alone among roadless ones
+- City Builder: "Optimize buildings" fills leftover gaps with the best rated buildings from the inventory that fit (can be switched off via the gear)
+- City Builder: The calculation tries more variants in the same time
+- City Builder: The build progress hatching can be hidden, the city planner closes when the City Builder opens
+- City Builder: The lists of the side box can be collapsed, a magnifier shows buildings standing in the city
+- Menu: new icons for Event Cockpit, Year in review, Web Requests and Building Search
+
+**Bugfixes**
+
+- City Builder: optimization and image export use the area of the current map in settlements, colonies and the Quantum Incursion
+- Military units overview: the unit icons are shown again
+- GB Calculator: foreign GBs use the same percentage as the GB Cost Calculator, it stays when switching between split and combined view
+
+---
+
+##### 4.9.0.0
+**Update**
+
+- New: Event Cockpit – the running event at a glance: remaining time, currencies, next prize, daily tasks, quests and league
+- New: Year in review – your FoE year as a picture to share, with 12 designs and 22 colors
+- New: Army suggestion in the battle window – the line-ups with the best win rate against the army ahead, plus your real record
+- Research costs: forecast of the days still needed per resource
+- Statistics: daily values are kept back to the start of the previous year
+- Statistics: the helper also remembers GB contributions, points, battles, GB levels and achievements (locally only)
+- City Builder: the building optimization is configurable (gear next to “Optimize buildings”)
+- Guild Battlegrounds: the countdown to the next focus target counts by the second and can be turned off
+
+**Bugfixes**
+
+- Menu bar: while sorting, the bar only scrolls once the icon has stayed over the arrow for a full second
+
+---
+
+##### 4.8.10.0
+**Update**
+
+- Guild Battlegrounds: map and sector list are linked, with tooltip and selection by click
+- Guild Battlegrounds: sectors selected for copying stay selected when the list updates
+- Guild Battlegrounds: the next focus targets as a movable overview on the map, with countdown on the menu button
+- Cultural settlements & Quantum Incursion: bell for alerts when productions or constructions are done
+- Production overview: "Boost" shows which sources provide the goods production boost
+- Production overview: the boost view stays open when you collect
+- Power leveling: unlock costs per level, total compared with your stock
+- City overview: new efficiency heatmap from red (weak) to green (strong)
+- Message Checklist: new button "My last message" with the places you took
+- Guild member overview: GE and GBG show the last finished round, plus a new QI column
+
+**Bugfixes**
+
+- Settings: the menu length takes effect immediately
+- Guild Battlegrounds: the sector list stays smooth even after a long time
+- QI overview: your own row is highlighted again
+- Guild member overview: the activity column sorts correctly
+- Guild member overview: the GE column in the details is correctly labelled "Encounters"
+- Limited buildings: expiry alerts work reliably again
+- Power leveling: the table head matches the columns again
+- Production overview: the boost buttons work in all views
+- Helper windows keep responding quickly, even after many boxes have been opened
+
+---
+
 ##### 4.8.9.2
 **Bugfixes**
 

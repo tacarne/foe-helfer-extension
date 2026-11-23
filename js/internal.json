@@ -12,6 +12,10 @@
 	"kits",
 	"inventory",
 	"ascended",
+	{
+		"name": "eventcockpit",
+		"parts": ["questtips"]
+	},
 	"checklist",
 	"citysearch",
 	"allies",
@@ -38,7 +42,10 @@
 	},
 	"stats",
 	"bonus-service",
-	"technologies",
+	{
+		"name": "technologies",
+		"parts": ["forecast"]
+	},
 	{
 		"name": "negotiation",
 		"parts": ["solver"]
@@ -48,7 +55,10 @@
 	"announcements",
 	"investment",
 	"strategy-points",
-	"battle-assist",
+	{
+		"name": "battle-assist",
+		"parts": ["lineup"]
+	},
 	{
 		"name": "citymap",
 		"parts": ["city-buildings"]
@@ -98,7 +108,8 @@
 	"reconstruction",
 	"boosts",
 	"shopAssist",
-	"cablocker",
-	"guild-battles",
-	"ignore-list"
+    "cablocker",
+    "guild-battles",
+    "ignore-list",
+    "yearreview"
 ]

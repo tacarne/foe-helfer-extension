@@ -30,6 +30,8 @@ let _menu = {
 
 	Items: [
 		//'calculator',
+		'yearReview',
+		'eventCockpit',
 		'citySearch',
 		'checklist',
 		'gbBonuses',
@@ -113,6 +115,13 @@ let _menu = {
 		_menu.OverflowCheck(_menu.selectedMenu, true);
 	},
 
+
+	/**
+	 * Switches back from the fallback box menu to the selected menu once the window is large enough
+	 *
+	 * @param {string} [selMenu] menu that is currently shown
+	 * @param {boolean} [flag] true when called right after building a menu (no switch then)
+	 */
 	OverflowCheck: (selMenu='Box', flag) => {
 		if (window.innerHeight >= 600 && window.innerWidth >= 950 && (!flag && selMenu != MainParser.SelectedMenu)) {			
 			$('#menu_box').remove();
@@ -120,6 +129,22 @@ let _menu = {
 			_menu.CallSelectedMenu(MainParser.SelectedMenu);
 		}
 	},
+
+
+	/**
+	 * Applies the "MenuLength" setting to the menu bar that is currently shown, the box menu has no length
+	 */
+	ApplyMenuLength: () => {
+		if (!$('#foe-helper-hud').length) return;
+
+		if (_menu.selectedMenu === 'RightBar') {
+			_menu_right.SetMenuHeight(true);
+		}
+		else if (_menu.selectedMenu === 'BottomBar') {
+			_menu_bottom.SetMenuWidth(true);
+		}
+	},
+
 
 	/**
 	 * Hides a button. The HUD slider must already be filled for this.
@@ -348,6 +373,8 @@ let _menu = {
 		{ id: 'kits', title: i18n('Menu.Kits.Title'), description: i18n('Menu.Kits.Desc') },
 		{ id: 'inventory', title: i18n('Menu.Inventory.Title'), description: i18n('Menu.Inventory.Desc') },
 		{ id: 'ascended', title: i18n('Menu.Ascended.Title'), description: i18n('Menu.Ascended.Desc') },
+		{ id: 'eventCockpit', title: i18n('Menu.EventCockpit.Title'), description: i18n('Menu.EventCockpit.Desc') },
+		{ id: 'yearReview', title: i18n('Menu.YearReview.Title'), description: i18n('Menu.YearReview.Desc') },
 		{ id: 'checklist', title: i18n('Menu.Checklist.Title'), description: i18n('Menu.Checklist.Desc') },
 		{ id: 'citySearch', title: i18n('Menu.CitySearch.Title'), description: i18n('Menu.CitySearch.Desc') },
 		{ id: 'gbBonuses', title: i18n('Menu.GBBonuses.Title'), description: i18n('Menu.GBBonuses.Desc') },
@@ -694,6 +721,33 @@ let _menu = {
 			.ready(Ascended.UpdateMenuCounter);
 	},
 
+	/**
+	 * Year in review: the figures of a calendar year as a picture
+	 */
+	yearReview_Btn: () => {
+		let btn = _menu.MakeButton('yearReview');
+
+		let btn_sp = $('<span />').on('click', function () {
+			YearReview.init();
+		});
+
+		return btn.append(btn_sp);
+	},
+
+	/**
+	 * Event cockpit: the running seasonal event at a glance
+	 */
+	eventCockpit_Btn: () => {
+		let btn = _menu.MakeButton('eventCockpit');
+
+		let btn_sp = $('<span />').on('click', function () {
+			EventCockpit.init();
+		});
+
+		return btn.append(btn_sp, $('<span id="eventCockpit-count" class="hud-counter" style="display:none">0</span>'))
+			.ready(EventCockpit.UpdateMenuCounter);
+	},
+
 	inventory_Btn: () => {
 		let btn = _menu.MakeButton('inventory');
 
@@ -809,6 +863,12 @@ let _menu = {
 		return btn.append(btn_sp);
 	},
 
+
+	/**
+	 * Guild Battlegrounds box, the counter shows the time until the next focus target unlocks
+	 *
+	 * @returns {jQuery} Menu button
+	 */
 	gildFight_Btn: () => {
 		let btn = _menu.MakeButton('gildFight',true);
 
@@ -818,7 +878,8 @@ let _menu = {
 			}
 		});
 
-		return btn.append(btn_sp);
+		return btn.append(btn_sp, $('<span id="gildFight-count" class="hud-counter" style="display:none"></span>'))
+			.ready(Guild_fights.UpdateMenuCounter);
 	},
 
 	investment_Btn: () => {

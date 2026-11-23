@@ -81,6 +81,12 @@
 		"sort": 24
 	},
 	{
+		"name": "ShowArmyLineup",
+		"status": true,
+		"group": "Auto",
+		"sort": 25
+	},
+	{
 		"name": "ShowGuildTreasuryLogExport",
 		"status": true,
 		"group": "Auto",
@@ -194,7 +200,6 @@
 		"name": "ShowBuildingsExpired",
 		"status": true,
 		"group": "Extension",
-		"button": "MainParser.Inactives.showSettings()",
 		"sort": 9
 	},
 	{

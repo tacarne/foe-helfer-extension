@@ -17,11 +17,17 @@
  * rated with the user's efficiency settings (Productions.Rating), and lets the
  * layout worker fill the space over several rounds.
  *
- * Rules: great buildings, the town hall, era buildings and buildings with an
- * ally stay. Limited buildings count with the value they decay into, unless a
- * fresh copy waits in the inventory to renew them. The number of buildings with
- * 5 minute productions never drops, happiness stays at least at today's ratio
- * and some free population is kept.
+ * Fixed rules: great buildings, the town hall and era buildings stay.
+ *
+ * Rules the player switches in the City Builder (Optimizer.Defaults, stored by
+ * setOption): buildings with an ally stay; limited buildings count with the
+ * value they decay into unless a fresh copy waits in the inventory to renew
+ * them, count with today's value or stay altogether; the number of buildings
+ * with 5 minute productions never drops; happiness stays at least at today's
+ * ratio; some free population is kept; building types picked by hand stay.
+ * Further options decide what may be taken from the inventory: Quantum
+ * Incursion (Neo) buildings, limited (ascended) buildings and selection kits,
+ * and whether the gaps of the finished layout are plugged with small buildings.
  */
 CityBuilder.Optimizer = {
 
@@ -34,11 +40,76 @@ CityBuilder.Optimizer = {
     /** @type {number} search time per round in ms */
     RoundBudget: 12000,
 
+    /** @type {number} search time per round in ms when the city stays as it stands */
+    KeepBudget: 5000,
+
     /** @type {Object[]} key figures of every round of the last run */
     Log: [],
 
     /** @type {number} free tiles the rounds aim for (single tiles at roads are unavoidable) */
     TargetFree: 35,
+
+    /** @type {string} localStorage key of the options */
+    StorageKey: 'CityBuilderOptimizeOptions',
+
+    /**
+     * Options of the optimization with their defaults.
+     *
+     * @type {{allies: boolean, fiveMinutes: boolean, happiness: boolean, population: boolean,
+     * limited: string, keep: string[], useNeo: boolean, useAscended: boolean, useKits: boolean, fill: boolean}}
+     */
+    Defaults: {
+        allies: true,
+        fiveMinutes: true,
+        happiness: true,
+        population: true,
+        limited: 'decay',
+        keep: [],
+        useNeo: true,
+        useAscended: false,
+        useKits: true,
+        fill: true
+    },
+
+    /** @type {string[]} how limited buildings of the city are treated: rated with the value they decay into, rated with today's value, always kept */
+    LimitedModes: ['decay', 'current', 'keep'],
+
+
+    /**
+     * Reads the stored options; missing or invalid entries fall back to the defaults.
+     *
+     * @returns {Object} Options, shaped like Defaults.
+     */
+    options: () => {
+        const O = CityBuilder.Optimizer;
+        let stored = null;
+        try {
+            stored = JSON.parse(localStorage.getItem(O.StorageKey) || 'null');
+        } catch (e) {
+            stored = null;
+        }
+
+        const options = Object.assign({}, O.Defaults);
+        for (const [key, fallback] of Object.entries(O.Defaults)) {
+            const value = stored?.[key];
+            if (key === 'keep') options.keep = Array.isArray(value) ? value.filter(id => typeof id === 'string') : [];
+            else if (key === 'limited' ? O.LimitedModes.includes(value) : typeof value === typeof fallback) options[key] = value;
+        }
+        return options;
+    },
+
+
+    /**
+     * Stores one option; it applies with the next calculation.
+     *
+     * @param {string} key - Option name from Defaults.
+     * @param {boolean|string|string[]} value - New value.
+     */
+    setOption: (key, value) => {
+        const O = CityBuilder.Optimizer;
+        if (!(key in O.Defaults)) return;
+        localStorage.setItem(O.StorageKey, JSON.stringify(Object.assign(O.options(), { [key]: value })));
+    },
 
 
     /**
@@ -90,21 +161,66 @@ CityBuilder.Optimizer = {
 
 
     /**
+     * Whether the rules allow swapping a city building at all: special
+     * buildings except great buildings, the town hall and hubs.
+     *
+     * @param {Object} building - Building from CityBuildings.
+     * @returns {boolean} True for swappable buildings.
+     */
+    swappable: (building) => !!building.isSpecial
+        && !['greatbuilding', 'main_building'].includes(building.type) && !building.type.includes('hub'),
+
+
+    /**
+     * Freshly rated buildings of the live city, streets left out.
+     *
+     * @returns {Object[]} Buildings from CityBuildings.
+     */
+    cityBuildings: () => {
+        Productions.Rating.load();
+        Productions.CalcRatingBody();
+        return Productions.BuildingsAll.filter(b => b && !b.isInInventory && b.id < 2000000000 && b.type !== 'street');
+    },
+
+
+    /**
+     * Swappable buildings of the city grouped by type, for picking the ones
+     * that always stay. Weakest first, those would leave first.
+     *
+     * @returns {{entityId: string, name: string, count: number, w: number, h: number, score: number, kept: boolean}[]} Building types.
+     */
+    keepList: () => {
+        const O = CityBuilder.Optimizer;
+        const kept = new Set(O.options().keep);
+        const groups = new Map();
+
+        for (const b of O.cityBuildings()) {
+            if (!O.swappable(b)) continue;
+            if (!groups.has(b.entityId)) {
+                const p = O.placement(b.entityId);
+                groups.set(b.entityId, { entityId: b.entityId, name: b.name, count: 0, w: p.w, h: p.h, score: O.score(b), kept: kept.has(b.entityId) });
+            }
+            groups.get(b.entityId).count++;
+        }
+        return [...groups.values()].sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+    },
+
+
+    /**
      * Collects the city candidates, the inventory pool and the constraints.
      * Uses the efficiency rating of the productions module, so the user's
      * rating settings decide what counts as weak or strong.
      *
+     * @param {Object} [options] - Options, shaped like Defaults; the stored ones by default.
      * @returns {Object} Planning context.
      */
-    prepare: () => {
+    prepare: (options = CityBuilder.Optimizer.options()) => {
         const O = CityBuilder.Optimizer;
         const CE = MainParser.CityEntities;
 
-        Productions.Rating.load();
-        Productions.CalcRatingBody();
-
+        const cityBuildings = O.cityBuildings();
         const stock = Object.assign({}, Kits.InventoryStock || {});
-        const cityBuildings = Productions.BuildingsAll.filter(b => b && !b.isInInventory && b.id < 2000000000 && b.type !== 'street');
+        const kept = new Set(options.keep);
 
         // happiness and population of the live city
         let happiness = 0, popPlus = 0, popFree = 0;
@@ -118,21 +234,24 @@ CityBuilder.Optimizer = {
         let fiveMinutesKept = 0;
         for (const b of cityBuildings) {
             if (CityBuilder.Excluded.has(b.id)) continue;
-            const fixed = !b.isSpecial
-                || ['greatbuilding', 'main_building'].includes(b.type) || b.type.includes('hub')
-                || Allies.buildingList?.[b.id];
-            const five = O.hasFiveMinutes(b.entityId);
+            const limited = CE[b.entityId]?.components?.AllAge?.limited;
+            const fixed = !O.swappable(b) || kept.has(b.entityId)
+                || (options.allies && Allies.buildingList?.[b.id])
+                || (options.limited === 'keep' && limited);
+            const five = options.fiveMinutes && O.hasFiveMinutes(b.entityId);
             if (fixed) {
                 if (five) fiveMinutesKept++;
                 continue;
             }
 
             // limited buildings count with what they decay into, unless the
-            // inventory holds a fresh copy to renew them
+            // inventory holds a fresh copy to renew them; where the pool may hand
+            // out limited buildings, that copy is set aside for the renewal
             let score = O.score(b);
-            const limit = CE[b.entityId]?.components?.AllAge?.limited?.config;
-            if (limit?.targetCityEntityId && CE[limit.targetCityEntityId] && !(stock[b.entityId] > 0)) {
-                score = O.score(CityBuildings.createBuilding(CE[limit.targetCityEntityId], CurrentEra));
+            const target = options.limited === 'decay' && limited?.config?.targetCityEntityId;
+            if (target && CE[target]) {
+                if (!(stock[b.entityId] > 0)) score = O.score(CityBuildings.createBuilding(CE[target], CurrentEra));
+                else if (options.useAscended) stock[b.entityId]--;
             }
 
             const p = O.placement(b.entityId);
@@ -144,8 +263,9 @@ CityBuilder.Optimizer = {
         }
 
         return {
+            options: options,
             candidates: candidates,
-            pool: O.pool(stock),
+            pool: O.pool(stock, options),
             happiness: happiness,
             popPlus: popPlus,
             popFree: popFree,
@@ -159,30 +279,36 @@ CityBuilder.Optimizer = {
      * Buildings that can be placed from the inventory, with honest counts:
      * the stock is handed out building by building, best rated first, so a
      * selection kit offering several buildings is only counted once.
-     * Limited buildings and upgrades of buildings standing in the city are left out.
+     * Upgrades of buildings standing in the city are left out, the options
+     * decide about limited buildings, Quantum Incursion buildings and
+     * everything that needs a selection kit.
      *
      * @param {Object} stock - Flat inventory stock (consumed while counting).
+     * @param {Object} options - Options, shaped like Defaults.
      * @returns {Object[]} One entry per buildable copy, best rated first.
      */
-    pool: (stock) => {
+    pool: (stock, options) => {
         const O = CityBuilder.Optimizer;
         const CE = MainParser.CityEntities;
         const rated = new Map(Productions.BuildingsAll.filter(b => b?.isInInventory).map(b => [b.entityId, b]));
-        const options = [];
+        const buildable = [];
 
         for (const [entityId, data] of Object.entries(Productions.InventoryBuildings || {})) {
             const b = rated.get(entityId);
             const meta = CE[entityId];
             if (!b || !meta || !b.isSpecial || b.type === 'greatbuilding') continue;
-            if (meta.components?.AllAge?.limited) continue;
+            if (meta.components?.AllAge?.limited && !options.useAscended) continue;
+            if (entityId.includes('_GR') && !options.useNeo) continue;
             const score = O.score(b);
             if (score <= 0) continue;
-            options.push({ entityId: entityId, building: b, score: score, chains: (data.chains || []).filter(c => !c.chain.some(el => el.from === 'city')) });
+            const chains = (data.chains || []).filter(c => !c.chain.some(el => el.from === 'city'
+                || (!options.useKits && (el.from === 'selectionKit' || el.type === 'selectionKit'))));
+            buildable.push({ entityId: entityId, building: b, score: score, chains: chains });
         }
-        options.sort((a, b) => b.score - a.score);
+        buildable.sort((a, b) => b.score - a.score);
 
         const pool = [];
-        for (const opt of options) {
+        for (const opt of buildable) {
             const p = O.placement(opt.entityId);
             for (const c of opt.chains) {
                 // build as many copies as this chain's ingredients allow
@@ -192,7 +318,7 @@ CityBuilder.Optimizer = {
                         entityId: opt.entityId, name: opt.building.name, score: opt.score,
                         w: p.w, h: p.h, street: p.street, area: O.area(p.w, p.h, p.street),
                         happiness: opt.building.happiness || 0, population: opt.building.population || 0,
-                        five: O.hasFiveMinutes(opt.entityId)
+                        five: options.fiveMinutes && O.hasFiveMinutes(opt.entityId)
                     });
                 }
             }
@@ -215,8 +341,9 @@ CityBuilder.Optimizer = {
         const removed = [], added = [];
         let hap = ctx.happiness, popPlus = ctx.popPlus, popFree = ctx.popFree;
         let freed = extraArea, used = 0;
-        const popFloor = Math.max(0, ctx.popPlus * 0.05);
-        const ratioFloor = ctx.ratio;
+        // without the population option the plan may use up the free population, but never more
+        const popFloor = ctx.options.population ? Math.max(0, ctx.popPlus * 0.05) : 0;
+        const ratioFloor = ctx.options.happiness ? ctx.ratio : -Infinity;
 
         const take = (n) => { added.push(n); used += n.area; hap += n.happiness; popFree += n.population; if (n.population > 0) popPlus += n.population; };
         const drop = (r) => { removed.push(r); freed += r.area; hap -= r.happiness; popFree -= r.population; if (r.population > 0) popPlus -= r.population; };
@@ -261,7 +388,7 @@ CityBuilder.Optimizer = {
      */
     freeTiles: (layout) => {
         const tiles = new Set();
-        for (const a of Object.values(CityMap.Main.unlockedAreas)) {
+        for (const a of CityBuilder.liveAreas()) {
             for (let x = a.x || 0; x < (a.x || 0) + a.width; x++) {
                 for (let y = a.y || 0; y < (a.y || 0) + a.length; y++) tiles.add(x + ',' + y);
             }
@@ -276,9 +403,108 @@ CityBuilder.Optimizer = {
 
 
     /**
+     * Plugs the gaps a finished layout left over with the best rated buildings
+     * still in the pool: best rating first, each on the free spot where it
+     * touches the most. Street buildings only go next to a road, buildings
+     * that need a two-lane street are left out. Happiness and population keep
+     * the limits of the swap plan. The new buildings are added to the layout.
+     *
+     * @param {Object} ctx - Context from prepare().
+     * @param {{removed: Object[], added: Object[], gain: number}} plan - Swap plan of the layout.
+     * @param {Object[]} layout - Worker layout, gets the gap fillers appended.
+     * @returns {{removed: Object[], added: Object[], gain: number}} Plan including the gap fillers.
+     */
+    fillGaps: (ctx, plan, layout) => {
+        const free = new Set(), roads = new Set();
+        for (const a of CityBuilder.liveAreas()) {
+            for (let x = a.x || 0; x < (a.x || 0) + a.width; x++) {
+                for (let y = a.y || 0; y < (a.y || 0) + a.length; y++) free.add(x + ',' + y);
+            }
+        }
+        for (const b of layout) {
+            for (let x = b.x; x < b.x + b.width; x++) {
+                for (let y = b.y; y < b.y + b.height; y++) {
+                    free.delete(x + ',' + y);
+                    if (b.type === 'street') roads.add(x + ',' + y);
+                }
+            }
+        }
+
+        // happiness and population after the swap plan
+        let hap = ctx.happiness, popPlus = ctx.popPlus, popFree = ctx.popFree;
+        const count = (b, sign) => {
+            hap += sign * b.happiness;
+            popFree += sign * b.population;
+            if (b.population > 0) popPlus += sign * b.population;
+        };
+        plan.removed.forEach(r => count(r, -1));
+        plan.added.forEach(n => count(n, 1));
+        const popFloor = ctx.options.population ? Math.max(0, ctx.popPlus * 0.05) : 0;
+        const ratioFloor = ctx.options.happiness ? ctx.ratio : -Infinity;
+
+        // tiles around a footprint: [touching tiles that are not free, tiles at a road]
+        const border = (x, y, w, h) => {
+            let touch = 0, road = 0;
+            const visit = (key) => {
+                if (!free.has(key)) touch++;
+                if (roads.has(key)) road++;
+            };
+            for (let i = x; i < x + w; i++) { visit(i + ',' + (y - 1)); visit(i + ',' + (y + h)); }
+            for (let j = y; j < y + h; j++) { visit((x - 1) + ',' + j); visit((x + w) + ',' + j); }
+            return [touch, road];
+        };
+
+        const taken = new Set(plan.added);
+        const added = [];
+        // the free space only shrinks: a footprint that found no spot never finds one later
+        const hopeless = new Set();
+        for (const n of ctx.pool) {
+            if (!free.size) break;
+            const kind = n.w + 'x' + n.h + '/' + n.street;
+            if (taken.has(n) || n.street >= 2 || n.w * n.h > free.size || hopeless.has(kind)) continue;
+            if (popFree + n.population < popFloor) continue;
+            const nextPopPlus = popPlus + Math.max(n.population, 0);
+            if (nextPopPlus > 0 && (hap + n.happiness) / nextPopPlus < ratioFloor) continue;
+
+            let spot = null, spotTouch = -1;
+            for (const key of free) {
+                const [x, y] = key.split(',').map(Number);
+                let fits = true;
+                for (let i = x; i < x + n.w && fits; i++) {
+                    for (let j = y; j < y + n.h; j++) if (!free.has(i + ',' + j)) { fits = false; break; }
+                }
+                if (!fits) continue;
+                const [touch, road] = border(x, y, n.w, n.h);
+                if ((n.street && !road) || touch <= spotTouch) continue;
+                spot = [x, y];
+                spotTouch = touch;
+            }
+            if (!spot) {
+                hopeless.add(kind);
+                continue;
+            }
+
+            for (let i = spot[0]; i < spot[0] + n.w; i++) {
+                for (let j = spot[1]; j < spot[1] + n.h; j++) free.delete(i + ',' + j);
+            }
+            layout.push({
+                id: 'plan_' + (plan.added.length + added.length), asset_id: n.entityId, name: '★ ' + n.name, type: 'generic_building',
+                x: spot[0], y: spot[1], width: n.w, height: n.h, street_level: n.street, chain_id: null, chain_pos: -1
+            });
+            added.push(n);
+            count(n, 1);
+        }
+
+        const value = added.reduce((sum, n) => sum + n.score * n.area, 0);
+        return { removed: plan.removed, added: plan.added.concat(added), gain: plan.gain + Math.round(value / 100) };
+    },
+
+
+    /**
      * Runs the optimization: plan, lay out, measure the leftover space and
      * adjust the amount of new buildings until the city is filled. The best
-     * complete round wins.
+     * complete round wins; the gaps every one of its layout variants left
+     * over are plugged with small buildings afterwards (variant.planned).
      *
      * @param {Object[]} baseInput - Worker input of the current city (incl. a free space entry).
      * @returns {Promise<Object|null|undefined>} {result, plan} of the best round, null without a
@@ -304,7 +530,8 @@ CityBuilder.Optimizer = {
             }));
 
             $('#CityBuilderBoxBody .loading-title').text(i18n('Boxes.CityBuilder.OptimizeRound').replace('__round__', round + 1).replace('__rounds__', O.Rounds));
-            const result = await CityBuilder.runWorker(input, O.RoundBudget, (pct) => {
+            const budget = localStorage.getItem('CityBuilderKeepLayout') === '1' ? O.KeepBudget : O.RoundBudget;
+            const result = await CityBuilder.runWorker(input, budget, (pct) => {
                 const total = Math.round((round * 100 + pct) / O.Rounds);
                 $('#CityBuilderBoxBody .calc-progress').text(total + '%');
                 $('#CityBuilderBoxBody .loading-bar-fill').css('width', total + '%');
@@ -336,6 +563,12 @@ CityBuilder.Optimizer = {
                 extra = overflows !== null ? Math.floor((fits + overflows) / 2) : extra + Math.max(4, Math.floor((free - O.TargetFree) * 0.8));
             }
             if (fits !== null && overflows !== null && overflows - fits < 4) break;
+        }
+
+        // every variant leaves different gaps, so each gets its own plan
+        if (best) {
+            for (const v of best.result.variants) v.planned = ctx.options.fill ? O.fillGaps(ctx, best.plan, v.layout) : Object.assign({}, best.plan);
+            best.plan = best.result.variants[0].planned;
         }
         return best;
     }
