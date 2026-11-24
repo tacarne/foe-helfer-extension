@@ -2210,8 +2210,8 @@ let MainParser = {
 		}
 
 		MainParser.updateArkBonus(ArkBonus, "Limited Bonuses");
-		console.log("ArkBonusGold = " + (ArkBonusGold +  ((ExtWorld == "fr4" && (ExtPlayerID == 1675353)) ? 6 : 0)));
-		MainParser.updateArkBonus(ArkBonusGold + ((ExtWorld == "fr4" && (ExtPlayerID == 1675353)) ? 6 : 0), "Limited Bonuses", 'gold');
+		console.log("ArkBonusGold = " + (ArkBonusGold +  ((ExtWorld == "fr4" && (ExtPlayerID == 1675353)) ? 10 : 0)));
+		MainParser.updateArkBonus(ArkBonusGold + ((ExtWorld == "fr4" && (ExtPlayerID == 1675353)) ? 10 : 0), "Limited Bonuses", 'gold');
 	},
 
 
