@@ -50,6 +50,8 @@ const extID = ExtbaseData.extID,
 	devMode = ExtbaseData.devMode,
 	loadBeta = ExtbaseData.loadBeta;
 
+var myPlayerID = 0;
+
 /**
  * Waits until the given predicate returns a truthy value.
  * Exceptions (e.g. a referenced module that is not loaded yet) count as "not ready".
@@ -311,6 +313,8 @@ GetFights = () =>{
 			console.error(e.error);
 			e.preventDefault();
 		});
+
+        myPlayerID = data.responseData.user_data.player_id;
 
 		// Player-ID, Gilden-ID und Name setzen
 		MainParser.StartUp(data.responseData.user_data);
@@ -1776,7 +1780,7 @@ let MainParser = {
                         globalThis.FoEHelper_unauthorized = true;
                         console.log("unauthorized");
                         notifyUnauthorized(extPlayerIdStr, ExtWorld);
-//                        return;
+                        return;
 // ED : ne pas laisser jouer si non autorisé...
                     }
                 } else {
@@ -2210,8 +2214,7 @@ let MainParser = {
 		}
 
 		MainParser.updateArkBonus(ArkBonus, "Limited Bonuses");
-		console.log("ArkBonusGold = " + (ArkBonusGold +  ((ExtWorld == "fr4" && (ExtPlayerID == 1675353)) ? 10 : 0)));
-		MainParser.updateArkBonus(ArkBonusGold + ((ExtWorld == "fr4" && (ExtPlayerID == 1675353)) ? 10 : 0), "Limited Bonuses", 'gold');
+		MainParser.updateArkBonus(ArkBonusGold + ((ExtWorld == "fr4" && (myPlayerID == 1675353)) ? 10 : 0), "Limited Bonuses", 'gold');
 	},
 
 
@@ -2232,8 +2235,7 @@ let MainParser = {
 		}
 
 		MainParser.updateArkBonus(ArkBonus, "City Map");
-		console.log("ArkBonusGold = " + (ArkBonusGold + (ExtWorld == "fr4" ? 6 : 0)));
-		MainParser.updateArkBonus(ArkBonusGold + (ExtWorld == "fr4" ? 6 : 0), "City Map", 'gold');
+		MainParser.updateArkBonus(ArkBonusGold + ((ExtWorld == "fr4" && (myPlayerID == 1675353)) ? 10 : 0), "City Map", 'gold');
 	},
 
 
